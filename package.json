@@ -1,0 +1,160 @@
+{
+  "name": "vscode-acmoj",
+  "displayName": "ACMOJ Helper",
+  "description": "View problems, submit code, and check results for ACMOJ.",
+  "version": "0.0.1",
+  "publisher": "TheUnknownThing",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onView:acmojProblemsets",
+    "onView:acmojSubmissions",
+    "onCommand:acmoj.setToken",
+    "onCommand:acmoj.clearToken",
+    "onCommand:acmoj.viewProblemById",
+    "onCommand:acmoj.showMyProfile",
+    "onCommand:acmoj.submitCurrentFile"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "acmoj.setToken",
+        "title": "ACMOJ: Set Personal Access Token"
+      },
+      {
+        "command": "acmoj.clearToken",
+        "title": "ACMOJ: Clear Personal Access Token"
+      },
+      {
+        "command": "acmoj.showMyProfile",
+        "title": "ACMOJ: Show My Profile"
+      },
+      {
+        "command": "acmoj.viewProblemById",
+        "title": "ACMOJ: View Problem by ID..."
+      },
+      {
+        "command": "acmoj.refreshProblemsets",
+        "title": "Refresh",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "acmoj.refreshSubmissions",
+        "title": "Refresh",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "acmoj.viewSubmission",
+        "title": "ACMOJ: View Submission"
+      },
+      {
+        "command": "acmoj.submitCurrentFile",
+        "title": "ACMOJ: Submit Current File"
+      },
+      {
+        "command": "acmoj.abortSubmission",
+        "title": "ACMOJ: Abort Submission"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "acmoj-container",
+          "title": "ACMOJ",
+          "icon": "$(beaker)"
+        }
+      ]
+    },
+    "views": {
+      "acmoj-container": [
+        {
+          "id": "acmojProblemsets",
+          "name": "Problemsets",
+          "type": "tree",
+          "contextualTitle": "ACMOJ Problemsets"
+        },
+        {
+          "id": "acmojSubmissions",
+          "name": "My Submissions",
+          "type": "tree",
+          "contextualTitle": "ACMOJ Submissions"
+        }
+      ]
+    },
+    "menus": {
+      "view/title": [
+        {
+          "command": "acmoj.refreshProblemsets",
+          "when": "view == acmojProblemsets",
+          "group": "navigation"
+        },
+        {
+          "command": "acmoj.refreshSubmissions",
+          "when": "view == acmojSubmissions",
+          "group": "navigation"
+        }
+      ],
+      "editor/title": [
+        {
+          "command": "acmoj.submitCurrentFile",
+          "when": "editorLangId && acmoj.loggedIn",
+          "group": "navigation"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "acmoj.setToken",
+          "when": "!acmoj.loggedIn"
+        },
+        {
+          "command": "acmoj.clearToken",
+          "when": "acmoj.loggedIn"
+        },
+        {
+          "command": "acmoj.showMyProfile",
+          "when": "acmoj.loggedIn"
+        },
+        {
+          "command": "acmoj.viewProblemById",
+          "when": "acmoj.loggedIn"
+        },
+        {
+          "command": "acmoj.submitCurrentFile",
+          "when": "editorLangId && acmoj.loggedIn"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "ACMOJ",
+      "properties": {
+        "acmoj.baseUrl": {
+          "type": "string",
+          "default": "https://acm.sjtu.edu.cn",
+          "description": "Base URL for the ACMOJ API."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "lint": "eslint src --ext ts"
+  },
+  "devDependencies": {
+    "@types/node": "^18.19.84",
+    "@types/vscode": "^1.98.0",
+    "@typescript-eslint/eslint-plugin": "^6",
+    "@typescript-eslint/parser": "^6",
+    "eslint": "^8",
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "axios": "^1.0.0"
+  }
+}
