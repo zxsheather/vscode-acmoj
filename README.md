@@ -1,5 +1,9 @@
 # ACMOJ Helper for VS Code
 
+# [![Version](https://img.shields.io/visual-studio-marketplace/v/theunknownthing.acmoj-helper.svg?style=flat-square)](https://marketplace.visualstudio.com/items?itemName=theunknownthing.acmoj-helper)
+# [![Installs](https://img.shields.io/visual-studio-marketplace/i/theunknownthing.acmoj-helper.svg?style=flat-square)](https://marketplace.visualstudio.com/items?itemName=theunknownthing.acmoj-helper)
+# [![License](https://img.shields.io/github/license/theunknownthing/vscode-acmoj.svg?style=flat-square)](LICENSE.md)
+
 **Interact with ACM Class Online Judge (ACMOJ) directly within Visual Studio Code.**
 
 This extension allows you to browse problemsets (contests/homework), view problems, submit your code, and check submission results without leaving your editor.
@@ -19,7 +23,7 @@ This extension allows you to browse problemsets (contests/homework), view proble
 
 ## Requirements
 
-*   Visual Studio Code v1.80.0 or higher.
+*   Visual Studio Code v1.98.0 or higher.
 *   An active account on the target ACMOJ instance ([acm.sjtu.edu.cn/OnlineJudge/](https://acm.sjtu.edu.cn/OnlineJudge/)).
 
 ## Installation
@@ -27,7 +31,7 @@ This extension allows you to browse problemsets (contests/homework), view proble
 1.  Open **Visual Studio Code**.
 2.  Go to the **Extensions** view (`Ctrl+Shift+X` or `Cmd+Shift+X`).
 3.  Search for `ACMOJ Helper`.
-4.  Click **Install** on the extension published by `TheUnknownThing`. (**Currently, the extension is not published on the VS Code Marketplace.**)
+4.  Click **Install** on the extension published by `TheUnknownThing`.
 5.  Reload VS Code if prompted.
 
 ## Getting Started
