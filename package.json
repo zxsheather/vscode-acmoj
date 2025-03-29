@@ -17,15 +17,6 @@
     "Education",
     "Other"
   ],
-  "activationEvents": [
-    "onView:acmojProblemsets",
-    "onView:acmojSubmissions",
-    "onCommand:acmoj.setToken",
-    "onCommand:acmoj.clearToken",
-    "onCommand:acmoj.viewProblemById",
-    "onCommand:acmoj.showMyProfile",
-    "onCommand:acmoj.submitCurrentFile"
-  ],
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
@@ -151,6 +142,8 @@
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
+    "watch:tsc": "tsc --watch",
+    "watch:esbuild": "esbuild src/extension.ts --bundle --platform=node --outdir=out --external:vscode --watch",
     "lint": "eslint src --ext ts",
     "lint:fix": "eslint src --ext ts --fix",
     "format": "prettier --write src/**/*.ts",
@@ -170,6 +163,7 @@
     "@typescript-eslint/eslint-plugin": "^6",
     "@typescript-eslint/parser": "^6",
     "@vscode/vsce": "^2.15.0",
+    "esbuild": "^0.25.1",
     "eslint": "^8.57.1",
     "eslint-config-prettier": "^10.1.1",
     "eslint-plugin-prettier": "^5.2.5",
