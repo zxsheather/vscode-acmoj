@@ -54,7 +54,7 @@ This extension allows you to browse problemsets (contests/homework), view proble
 4.  **Viewing Problems:**
     *   Expand items in the "Problemsets" view to find problems.
     *   Click a problem name to open its details.
-    *   Alternatively, use the `ACMOJ: View Problem by ID...` command.
+    *   Alternatively, use the `ACMOJ: View Problem by ID...` command. (You would open it from the Command Palette and enter the problem ID.)
 5.  **Submitting Code:**
     *   Open the code file you want to submit.
     *   Click the ACMOJ submit icon `$(cloud-upload)` in the editor title bar, or run `ACMOJ: Submit Current File` from the Command Palette.
@@ -79,10 +79,14 @@ This extension contributes the following settings (accessible via `File > Prefer
 
 *   Implement pagination for problemsets and submissions.
 *   More user-friendly submission result display.
+*   Add display for the description of the problemset.
+*   Add support for submitting file in the problem view.
 
 ## Contributing
 
 Contributions are welcome! Please feel free to open an issue or submit a pull request on the [GitHub Repo](https://github.com/theunknownthing/vscode-acmoj).
+
+For more details on contributing, please refer to the [CONTRIBUTING.md](CONTRIBUTING.md) file.
 
 ## License
 
