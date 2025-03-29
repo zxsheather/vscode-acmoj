@@ -2,10 +2,16 @@
 import * as vscode from 'vscode';
 import { ApiClient } from './api';
 import { Problem, Submission } from './types';
+import MarkdownIt from 'markdown-it';
 
 // 存储当前打开的 Webview Panel，避免重复创建
 const problemPanels: Map<number, vscode.WebviewPanel> = new Map();
 const submissionPanels: Map<number, vscode.WebviewPanel> = new Map();
+const md = new MarkdownIt({
+    html: true,
+    linkify: true,
+    breaks: true,
+});
 
 /**
  * @brief show a Webview Panel with details of a problem
@@ -13,6 +19,7 @@ const submissionPanels: Map<number, vscode.WebviewPanel> = new Map();
  * @param apiClient the API client to fetch problem details
  * @param context the extension context
  */
+
 export async function showProblemDetails(problemId: number, apiClient: ApiClient, context: vscode.ExtensionContext) {
     const column = vscode.window.activeTextEditor ? vscode.window.activeTextEditor.viewColumn : undefined;
 
@@ -31,15 +38,14 @@ export async function showProblemDetails(problemId: number, apiClient: ApiClient
         }
     );
     problemPanels.set(problemId, panel);
-
     panel.webview.html = getWebviewContent("Loading problem...", panel.webview, context.extensionUri);
 
     try {
         const problem = await apiClient.getProblemDetails(problemId);
         panel.title = `Problem ${problem.id}: ${problem.title}`;
+        // Generate HTML using the updated getProblemHtml function
         panel.webview.html = getProblemHtml(problem, panel.webview, context.extensionUri);
 
-        // handle messages (e.g. clicking "Submit")
         panel.webview.onDidReceiveMessage(
             message => {
                 switch (message.command) {
@@ -62,6 +68,12 @@ export async function showProblemDetails(problemId: number, apiClient: ApiClient
     }, null, context.subscriptions);
 }
 
+/**
+ * @brief show a Webview Panel with details of a submission
+ * @param submissionId the ID of the submission
+ * @param apiClient the API client to fetch submission details
+ * @param context the extension context
+ */
 export async function showSubmissionDetails(submissionId: number, apiClient: ApiClient, context: vscode.ExtensionContext) {
      const column = vscode.window.activeTextEditor ? vscode.window.activeTextEditor.viewColumn : undefined;
 
@@ -126,44 +138,162 @@ export async function showSubmissionDetails(submissionId: number, apiClient: Api
 // --- HTML Generation ---
 
 function getWebviewContent(content: string, webview: vscode.Webview, extensionUri: vscode.Uri): string {
-    // TODO: Add nonce for security
-    // const nonce = getNonce();
+    // Basic CSP, consider making it stricter if needed
+    const cspSource = webview.cspSource;
+    const nonce = getNonce(); // Helper function to generate nonce
+
+    // Optional: Add URIs for local CSS/JS if you create separate files
     // const styleUri = webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, 'resources', 'webview.css'));
-    // const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, 'resources', 'webview.js'));
 
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <!-- Content Security Policy -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${cspSource} 'unsafe-inline'; img-src ${cspSource} https:; script-src 'nonce-${nonce}';">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ACMOJ</title>
-    <style>
-        body { padding: 1em; }
-        pre { background-color: var(--vscode-textCodeBlock-background); padding: 0.5em; border-radius: 3px; }
-        .section { margin-bottom: 1.5em; }
-        h2 { border-bottom: 1px solid var(--vscode-editorGroupHeader-tabsBorder); padding-bottom: 0.3em; }
+    <style nonce="${nonce}">
+        /* Basic Reset & Body */
+        body {
+            font-family: var(--vscode-font-family, Arial, sans-serif);
+            color: var(--vscode-editor-foreground);
+            background-color: var(--vscode-editor-background);
+            padding: 1em 2em;
+            line-height: 1.6;
+        }
+        /* Headings */
+        h1, h2, h3, h4, h5, h6 {
+            margin-top: 1.2em;
+            margin-bottom: 0.6em;
+            font-weight: 600;
+            color: var(--vscode-textLink-foreground); /* Make headings stand out a bit */
+        }
+        h1 { font-size: 1.8em; border-bottom: 1px solid var(--vscode-editorWidget-border, #ccc); padding-bottom: 0.3em; }
+        h2 { font-size: 1.5em; border-bottom: 1px solid var(--vscode-editorWidget-border, #ccc); padding-bottom: 0.3em; }
+        h3 { font-size: 1.3em; }
+        h4 { font-size: 1.1em; }
+
+        /* Paragraphs and Links */
+        p { margin-bottom: 1em; }
+        a { color: var(--vscode-textLink-foreground); text-decoration: none; }
+        a:hover { color: var(--vscode-textLink-activeForeground); text-decoration: underline; }
+        a:focus { outline: 1px solid var(--vscode-focusBorder); }
+
+        /* Code Blocks and Inline Code */
+        pre, code {
+            font-family: var(--vscode-editor-font-family, Consolas, 'Courier New', monospace);
+            font-size: 0.95em;
+        }
+        code { /* Inline code */
+            background-color: var(--vscode-textCodeBlock-background);
+            padding: 0.2em 0.4em;
+            border-radius: 3px;
+        }
+        pre { /* Code block */
+            background-color: var(--vscode-textCodeBlock-background);
+            padding: 1em;
+            border-radius: 4px;
+            overflow-x: auto; /* Allow horizontal scrolling for long lines */
+            margin-bottom: 1em;
+        }
+        pre code { /* Reset styles for code inside pre */
+            background-color: transparent;
+            padding: 0;
+            border-radius: 0;
+        }
+
+        /* Lists */
+        ul, ol { padding-left: 2em; margin-bottom: 1em; }
+        li { margin-bottom: 0.4em; }
+
+        /* Blockquotes */
+        blockquote {
+            margin: 1em 0;
+            padding: 0.5em 1em;
+            border-left: 0.25em solid var(--vscode-editorWidget-border, #ccc);
+            background-color: var(--vscode-textBlockQuote-background);
+            color: var(--vscode-textBlockQuote-foreground);
+        }
+        blockquote p { margin-bottom: 0.5em; }
+
+        /* Tables (Basic Styling) */
+        table {
+            border-collapse: collapse;
+            margin: 1em 0;
+            width: auto;
+            border: 1px solid var(--vscode-editorWidget-border, #ccc);
+        }
+        th, td {
+            border: 1px solid var(--vscode-editorWidget-border, #ccc);
+            padding: 0.5em 0.8em;
+            text-align: left;
+        }
+        th {
+            background-color: var(--vscode-toolbar-hoverBackground);
+            font-weight: 600;
+        }
+        thead {
+             border-bottom: 2px solid var(--vscode-editorWidget-border, #ccc);
+        }
+
+        /* Other Styles */
+        .section { margin-bottom: 2em; }
         .label { font-weight: bold; min-width: 100px; display: inline-block;}
+        button {
+            background-color: var(--vscode-button-background);
+            color: var(--vscode-button-foreground);
+            border: 1px solid var(--vscode-button-border, transparent);
+            padding: 0.5em 1em;
+            border-radius: 2px;
+            cursor: pointer;
+            margin-right: 0.5em;
+        }
+        button:hover {
+            background-color: var(--vscode-button-hoverBackground);
+        }
+        button:focus {
+            outline: 1px solid var(--vscode-focusBorder);
+        }
+        /* Status colors (from previous implementation) */
         .status-accepted { color: var(--vscode-testing-iconPassed); }
         .status-error { color: var(--vscode-testing-iconFailed); }
-        /* Add more status colors */
+        /* Add more status colors if needed */
+
     </style>
 </head>
 <body>
     ${content}
+    <!-- Add script tag for interactivity -->
+    <script nonce="${nonce}">
+        // Add VS Code API acquisition if needed for interactivity
+        // const vscode = acquireVsCodeApi();
+    </script>
 </body>
 </html>`;
 }
 
+/**
+ * Generates the HTML content for the problem details webview, using Markdown rendering.
+ */
 function getProblemHtml(problem: Problem, webview: vscode.Webview, extensionUri: vscode.Uri): string {
+
+    // Render Markdown fields using markdown-it
+    const descriptionHtml = md.render(problem.description || '*No description provided.*');
+    const inputHtml = md.render(problem.input || '*No input format specified.*');
+    const outputHtml = md.render(problem.output || '*No output format specified.*');
+    const dataRangeHtml = md.render(problem.data_range || '*No data range specified.*');
+
+    // Handle examples (keep escaping input/output here as they are literal examples)
     let examplesHtml = '';
     if (problem.examples && problem.examples.length > 0) {
         examplesHtml = problem.examples.map((ex, i) => `
-            <h4>Example ${ex.name || (i + 1)}</h4>
+            <h4>Example ${escapeHtml(ex.name) || (i + 1)}</h4>
             ${ex.description ? `<p>${escapeHtml(ex.description)}</p>` : ''}
-            ${ex.input ? `<h5>Input:</h5><pre><code>${escapeHtml(ex.input)}</code></pre>` : ''}
-            ${ex.output ? `<h5>Output:</h5><pre><code>${escapeHtml(ex.output)}</code></pre>` : ''}
+            ${ex.input !== undefined && ex.input !== null ? `<h5>Input:</h5><pre><code>${escapeHtml(ex.input)}</code></pre>` : ''}
+            ${ex.output !== undefined && ex.output !== null ? `<h5>Output:</h5><pre><code>${escapeHtml(ex.output)}</code></pre>` : ''}
         `).join('');
-    } else if (problem.example_input || problem.example_output) { // old version example
+    } else if (problem.example_input || problem.example_output) { // Legacy examples
          examplesHtml = `
             <h4>Example</h4>
             ${problem.example_input ? `<h5>Input:</h5><pre><code>${escapeHtml(problem.example_input)}</code></pre>` : ''}
@@ -171,55 +301,75 @@ function getProblemHtml(problem: Problem, webview: vscode.Webview, extensionUri:
         `;
     }
 
+    // Construct the main content, inserting the rendered HTML
     const content = `
         <h1>${problem.id}: ${escapeHtml(problem.title)}</h1>
         <button id="submit-button">Submit Code for this Problem</button>
 
         <div class="section">
             <h2>Description</h2>
-            <div>${problem.description ? renderContent(problem.description) : 'N/A'}</div>
+            <div>${descriptionHtml}</div>
         </div>
 
         <div class="section">
             <h2>Input Format</h2>
-            <div>${problem.input ? renderContent(problem.input) : 'N/A'}</div>
+            <div>${inputHtml}</div>
         </div>
 
         <div class="section">
             <h2>Output Format</h2>
-            <div>${problem.output ? renderContent(problem.output) : 'N/A'}</div>
+            <div>${outputHtml}</div>
         </div>
 
         <div class="section">
             <h2>Examples</h2>
-            ${examplesHtml || 'N/A'}
+            ${examplesHtml || '*No examples provided.*'}
         </div>
 
          <div class="section">
             <h2>Data Range</h2>
-            <div>${problem.data_range ? renderContent(problem.data_range) : 'N/A'}</div>
+            <div>${dataRangeHtml}</div>
         </div>
 
          <div class="section">
             <h2>Accepted Languages</h2>
-            <div>${problem.languages_accepted ? problem.languages_accepted.join(', ') : 'N/A'}</div>
+            <div>${problem.languages_accepted ? escapeHtml(problem.languages_accepted.join(', ')) : 'N/A'}</div>
         </div>
 
-        <script>
+        <script nonce="${getNonce()}">
+            // Add acquireVsCodeApi() here if not already in getWebviewContent base script
             const vscode = acquireVsCodeApi();
             document.getElementById('submit-button').addEventListener('click', () => {
-                vscode.postMessage({ command: 'submit' });
+                vscode.postMessage({ command: 'submit', problemId: ${problem.id} }); // Pass problemId back
             });
         </script>
     `;
+    // Use the base template function to wrap the content
     return getWebviewContent(content, webview, extensionUri);
 }
 
+
+/**
+ * Generates the HTML content for the submission details webview.
+ * (No Markdown rendering needed here unless submission details/messages use it)
+ */
 function getSubmissionHtml(submission: Submission, codeContent: string, webview: vscode.Webview, extensionUri: vscode.Uri): string {
     const statusClass = `status-${submission.status.toLowerCase().replace(/_/g, '-')}`;
     const abortButtonHtml = submission.abort_url
         ? `<button id="abort-button">Abort Submission</button>`
         : '';
+
+    // Escape potentially unsafe content from the API
+    const messageHtml = submission.message ? `<p><span class="label">Message:</span> ${escapeHtml(submission.message)}</p>` : '';
+    const detailsHtml = submission.details ? `
+        <div class="section">
+            <h2>Judge Details</h2>
+            <pre><code>${escapeHtml(JSON.stringify(submission.details, null, 2))}</code></pre>
+        </div>
+    ` : '';
+    const problemTitleHtml = escapeHtml(submission.problem?.title || '?');
+    const friendlyNameHtml = escapeHtml(submission.friendly_name);
+    const codeHtml = escapeHtml(codeContent); // Escape the fetched code
 
     const content = `
         <h1>Submission #${submission.id}</h1>
@@ -227,35 +377,29 @@ function getSubmissionHtml(submission: Submission, codeContent: string, webview:
 
         <div class="section">
             <h2>Details</h2>
-            <p><span class="label">Problem:</span> ${submission.problem?.id}: ${escapeHtml(submission.problem?.title || '?')}</p>
-            <p><span class="label">User:</span> ${escapeHtml(submission.friendly_name)}</p>
+            <p><span class="label">Problem:</span> ${submission.problem?.id}: ${problemTitleHtml}</p>
+            <p><span class="label">User:</span> ${friendlyNameHtml}</p>
             <p><span class="label">Status:</span> <strong class="${statusClass}">${submission.status}</strong></p>
             ${submission.should_show_score && submission.score !== null ? `<p><span class="label">Score:</span> ${submission.score}</p>` : ''}
             <p><span class="label">Language:</span> ${submission.language}</p>
             <p><span class="label">Time:</span> ${submission.time_msecs !== null ? `${submission.time_msecs} ms` : 'N/A'}</p>
             <p><span class="label">Memory:</span> ${submission.memory_bytes !== null ? `${(submission.memory_bytes / 1024 / 1024).toFixed(2)} MB` : 'N/A'}</p>
             <p><span class="label">Submitted At:</span> ${new Date(submission.created_at).toLocaleString()}</p>
-            ${submission.message ? `<p><span class="label">Message:</span> ${escapeHtml(submission.message)}</p>` : ''}
+            ${messageHtml}
         </div>
 
-        ${submission.details ? `
-        <div class="section">
-            <h2>Judge Details</h2>
-            <pre><code>${escapeHtml(JSON.stringify(submission.details, null, 2))}</code></pre>
-        </div>
-        ` : ''}
-
+        ${detailsHtml}
 
         <div class="section">
             <h2>Code</h2>
-            <pre><code>${codeContent}</code></pre>
+            <pre><code>${codeHtml}</code></pre>
         </div>
 
         ${abortButtonHtml ? `
-        <script>
+        <script nonce="${getNonce()}">
             const vscode = acquireVsCodeApi();
             document.getElementById('abort-button').addEventListener('click', () => {
-                vscode.postMessage({ command: 'abort' });
+                vscode.postMessage({ command: 'abort', submissionId: ${submission.id} }); // Pass submissionId back
             });
         </script>
         ` : ''}
@@ -275,8 +419,11 @@ function escapeHtml(unsafe: string | null | undefined): string {
 }
 
 // simple rendering of content with line breaks
-// TODO: Use a proper Markdown parser for more complex formatting
-function renderContent(content: string): string {
-    // escape HTML and replace newlines with <br>
-    return escapeHtml(content).replace(/\n/g, '<br>');
+function getNonce(): string {
+    let text = '';
+    const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    for (let i = 0; i < 32; i++) {
+        text += possible.charAt(Math.floor(Math.random() * possible.length));
+    }
+    return text;
 }

@@ -69,18 +69,18 @@ export function registerCommands(
       }
     }),
 
-    // RENAMED refresh command
     vscode.commands.registerCommand("acmoj.refreshProblemsets", () => {
-      // Renamed
       if (!authService.isLoggedIn()) {
-        /* ... show message ... */ return;
+        vscode.window.showWarningMessage("Please login to ACMOJ first.");
+        return;
       }
       problemsetProvider.refresh(); // Refresh the correct provider
     }),
 
     vscode.commands.registerCommand("acmoj.refreshSubmissions", () => {
       if (!authService.isLoggedIn()) {
-        /* ... show message ... */ return;
+        vscode.window.showWarningMessage("Please login to ACMOJ first.");
+        return;
       }
       submissionProvider.refresh();
     }),
@@ -117,7 +117,7 @@ export function registerCommands(
 
     vscode.commands.registerCommand(
       "acmoj.submitCurrentFile",
-      async (problemIdFromContext?: number) => {
+      async (contextArgs?: number | { problemId?: number }) => {
         if (!authService.isLoggedIn()) {
           vscode.window
             .showWarningMessage(
@@ -139,9 +139,16 @@ export function registerCommands(
 
         const document = editor.document;
         const code = document.getText();
-        const fileLanguageId = document.languageId; // e.g., 'cpp', 'python', 'java'
+        const fileLanguageId = document.languageId;
 
-        let problemId: number | undefined = problemIdFromContext;
+        let problemId: number | undefined;
+
+        if (typeof contextArgs === "number") {
+          problemId = contextArgs;
+        } else if (typeof contextArgs === "object" && contextArgs?.problemId) {
+          // Handle message from Webview { command: 'submit', problemId: ... }
+          problemId = contextArgs.problemId;
+        }
 
         if (typeof problemId !== "number") {
           const problemIdStr = await vscode.window.showInputBox({

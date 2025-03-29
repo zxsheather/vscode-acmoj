@@ -3,7 +3,28 @@ import { ApiClient } from '../api';
 import { Problemset, ProblemBrief } from '../types';
 import { AuthService } from '../auth';
 
-type AcmojTreeItem = ProblemsetTreeItem | ProblemBriefTreeItem | vscode.TreeItem;
+type ProblemsetCategory = 'upcoming' | 'ongoing' | 'passed';
+
+class CategoryTreeItem extends vscode.TreeItem {
+    constructor(
+        public readonly label: string,
+        public readonly categoryType: ProblemsetCategory,
+        public readonly collapsibleState: vscode.TreeItemCollapsibleState = vscode.TreeItemCollapsibleState.Expanded // Expand categories by default
+    ) {
+        super(label, collapsibleState);
+        this.id = `category-${categoryType}`;
+        // Optional: Add icons for categories
+        switch(categoryType) {
+            case 'ongoing': this.iconPath = new vscode.ThemeIcon('debug-start'); break;
+            case 'upcoming': this.iconPath = new vscode.ThemeIcon('calendar'); break;
+            case 'passed': this.iconPath = new vscode.ThemeIcon('check-all'); break;
+        }
+    }
+    // Add context value if needed for specific menu contributions
+    // contextValue = 'problemsetCategory';
+}
+
+type AcmojTreeItem = CategoryTreeItem | ProblemsetTreeItem | ProblemBriefTreeItem | vscode.TreeItem;
 
 export class ProblemsetProvider implements vscode.TreeDataProvider<AcmojTreeItem> {
     private _onDidChangeTreeData: vscode.EventEmitter<AcmojTreeItem | undefined | null | void> = new vscode.EventEmitter<AcmojTreeItem | undefined | null | void>();
