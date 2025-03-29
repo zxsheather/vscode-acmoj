@@ -385,9 +385,14 @@ function getProblemHtml(
     webview: vscode.Webview,
     extensionUri: vscode.Uri
   ): string {
+    console.log("--- Raw Problem Description ---");
+    console.log(problem.description);
+    // Now render:
     const descriptionHtml = md.render(
-      problem.description || "*No description provided.*"
+    problem.description || "*No description provided.*"
     );
+    console.log("--- Rendered Description HTML ---");
+    console.log(descriptionHtml);
     const inputHtml = md.render(problem.input || "*No input format specified.*");
     const outputHtml = md.render(
       problem.output || "*No output format specified.*"
