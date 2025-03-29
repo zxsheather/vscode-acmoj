@@ -33,3 +33,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
         *   Prompts user to select the submission language from available options for the problem.
     *   Basic error handling for API requests and token validation.
     *   Configuration setting `acmoj.baseUrl`.
+
+## [0.1.0] - 2025-03-29
+
+### Added
+
+*   **Core Functionality:**
+    *   View user's Problemsets (Contests/Homework) categorized into "Ongoing," "Upcoming," and "Passed" sections in a dedicated Tree View.
+    *   Expand Problemsets to view contained Problems.
+*   **User Interface:**
+    *   Tree View for categorized Problemsets.
+    *   Tree View for user Submissions with status icons.
+    *   Status Bar item displaying login status and username/friendly name.
+    *   Command `ACMOJ: Show My Profile` to display basic user info.
+*   **Rendering:**
+    *   Markdown rendering for Problem descriptions, input/output formats, and data ranges in the Webview using `markdown-it`.
+    *   LaTeX equation rendering (inline `$...$` and display `$$...$$`) within Markdown content using KaTeX, bundled with the extension.
+    *   Webview styling using VS Code theme variables for better integration.
+
+### Changed
+
+*   **Problem View:** Replaced the initial idea of a flat problem list view with the categorized Problemset view as the primary way to browse assignments/contests.
+*   **Webview Content:** Enhanced Webview HTML generation to include proper CSP, nonces, KaTeX assets, and improved CSS styling.
+
+### Fixed
+
+*   Resolved various TypeScript compilation errors related to module resolution, type definitions (`@types/vscode`), implicit `any` types, `QuickPickItem` usage, and property overrides.
+*   Improved error handling for API requests, particularly for 401 (Unauthorized) and 403 (Forbidden) status codes.
+
+### Removed
+
+*   The initial simple "Problems" list view provider (superseded by `ProblemsetProvider`).

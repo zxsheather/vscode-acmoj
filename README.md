@@ -66,9 +66,9 @@ This extension contributes the following settings (accessible via `File > Prefer
 
 ## Known Issues
 
-*   Webview styling is basic.
-*   Pagination for problemsets and submissions is not yet implemented (only shows the first page).
-*   Error handling can be improved for edge cases.
+*  Pagination for problemsets and submissions is not yet implemented (only shows the first page).
+*  Error handling can be improved for edge cases.
+*  kaTeX rendering redendered 2 times in the webview.
 
 ## Contributing
 
