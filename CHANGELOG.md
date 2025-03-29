@@ -83,3 +83,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 *   Added a user-friendly interface for submission details, including a collapsible section for the judge's message.
+
+## [0.2.3] - 2025-3-30
+
+### Fixed
+
+*   Missing watch:tsc and watch:esbuild scripts in package.json.
+
+### Added
+
+*   Added inference of problem id from the active editor's filename and comments.
