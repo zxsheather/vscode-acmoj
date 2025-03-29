@@ -100,14 +100,15 @@ Here's a brief overview of the key files and directories:
 │   ├── commands.ts      # Registers and implements VS Code commands
 │   ├── types.ts         # TypeScript interfaces for API responses/data
 │   ├── views/           # Tree Data Providers for side panel views
+│   │   ├── problemProvider.ts
 │   │   ├── problemsetProvider.ts
 │   │   └── submissionProvider.ts
 │   └── webviews.ts      # Logic for generating and managing Webview panels (problem/submission details)
-├── .eslintrc.js         # ESLint configuration
 ├── .gitignore           # Files ignored by Git
-├── .prettierrc.js       # Prettier configuration (optional)
 ├── .vscodeignore        # Files ignored when packaging the extension
 ├── CHANGELOG.md         # Log of changes per version
+├── CODE_OF_CONDUCT.md   # Code of Conduct for contributors
+├── LICENSE.md           # License for the project
 ├── CONTRIBUTING.md      # This file!
 ├── package.json         # Extension manifest (metadata, dependencies, contributions, activation)
 ├── README.md            # Extension documentation for users
