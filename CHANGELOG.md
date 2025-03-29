@@ -71,3 +71,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 *   Fixed the issue where the `katex` library was not being loaded correctly in the Webview, causing LaTeX rendering to fail.
 *   Resolved the problem with the `markdown-it` library not being loaded correctly in the Webview, which affected Markdown rendering.
+
+## [0.2.1] - 2025-3-29
+
+### Fixed
+
+*   Dependency issue with `katex` and `markdown-it` libraries causing Webview rendering problems.
+
+## [0.2.2] - 2025-3-29
+
+### Added
+
+*   Added a user-friendly interface for submission details, including a collapsible section for the judge's message.

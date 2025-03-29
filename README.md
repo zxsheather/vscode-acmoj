@@ -78,7 +78,6 @@ This extension contributes the following settings (accessible via `File > Prefer
 ## TODO
 
 *   Implement pagination for problemsets and submissions.
-*   More user-friendly submission result display.
 *   Add display for the description of the problemset.
 *   Add support for submitting file in the problem view.
 

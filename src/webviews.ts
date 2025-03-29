@@ -504,8 +504,92 @@ function getProblemHtml(
   }
 
 /**
+ * Formats the judge details into a more readable HTML structure
+ */
+function formatJudgeDetails(details: any): string {
+  if (!details) {
+    return "";
+  }
+  
+  const resultClass = `status-${details.result.toLowerCase().replace(/_/g, "-")}`;
+  
+  const summaryHtml = `
+    <div class="judge-summary">
+      <h3>Summary</h3>
+      <div class="judge-summary-grid">
+        <div><strong>Result:</strong> <span class="${resultClass}">${details.result.toUpperCase()}</span></div>
+        <div><strong>Score:</strong> ${details.score}/100</div>
+        <div><strong>Total Time:</strong> ${details.resource_usage?.time_msecs || 0} ms</div>
+        <div><strong>Max Memory:</strong> ${((details.resource_usage?.memory_bytes || 0) / (1024 * 1024)).toFixed(2)} MB</div>
+      </div>
+    </div>
+  `;
+  
+  let groupsHtml = '';
+  if (details.groups && details.groups.length > 0) {
+    details.groups.forEach((group: any, index: number) => {
+      const groupResult = group.result.toLowerCase();
+      const groupClass = `status-${groupResult.replace(/_/g, "-")}`;
+      
+      let testpointsHtml = '';
+      group.testpoints?.forEach((testpoint: any) => {
+        const tpResult = testpoint.result.toLowerCase();
+        const tpClass = `status-${tpResult.replace(/_/g, "-")}`;
+        
+        testpointsHtml += `
+          <tr>
+            <td>#${testpoint.id}</td>
+            <td><span class="${tpClass}">${testpoint.result}</span></td>
+            <td>${testpoint.score}</td>
+            <td>${testpoint.resource_usage?.time_msecs || 0} ms</td>
+            <td>${((testpoint.resource_usage?.memory_bytes || 0) / (1024 * 1024)).toFixed(2)} MB</td>
+            <td>${testpoint.message || '-'}</td>
+          </tr>
+        `;
+      });
+      
+      groupsHtml += `
+        <details class="judge-group" ${index === 0 ? 'open' : ''}>
+          <summary>
+            <span class="group-title">Group #${group.id}</span>
+            <span class="group-result ${groupClass}">${group.result}</span>
+            <span class="group-score">Score: ${group.score}</span>
+          </summary>
+          <div class="judge-group-content">
+            <table class="testpoint-table">
+              <thead>
+                <tr>
+                  <th>Test</th>
+                  <th>Result</th>
+                  <th>Score</th>
+                  <th>Time</th>
+                  <th>Memory</th>
+                  <th>Message</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${testpointsHtml}
+              </tbody>
+            </table>
+          </div>
+        </details>
+      `;
+    });
+  }
+  
+  return `
+    <div class="judge-details">
+      ${summaryHtml}
+      <h3>Test Groups</h3>
+      <div class="judge-groups">
+        ${groupsHtml}
+      </div>
+    </div>
+  `;
+}
+
+/**
  * Generates the HTML content for the submission details webview.
- * (No Markdown rendering needed here unless submission details/messages use it)
  */
 function getSubmissionHtml(
   submission: Submission,
@@ -520,25 +604,25 @@ function getSubmissionHtml(
     ? `<button id="abort-button">Abort Submission</button>`
     : "";
 
-  // Escape potentially unsafe content from the API
   const messageHtml = submission.message
     ? `<p><span class="label">Message:</span> ${escapeHtml(
         submission.message
       )}</p>`
     : "";
+    
+  // Format judge details with the new formatter instead of raw JSON
   const detailsHtml = submission.details
     ? `
         <div class="section">
             <h2>Judge Details</h2>
-            <pre><code>${escapeHtml(
-              JSON.stringify(submission.details, null, 2)
-            )}</code></pre>
+            ${formatJudgeDetails(submission.details)}
         </div>
     `
     : "";
+    
   const problemTitleHtml = escapeHtml(submission.problem?.title || "?");
   const friendlyNameHtml = escapeHtml(submission.friendly_name);
-  const codeHtml = escapeHtml(codeContent); // Escape the fetched code
+  const codeHtml = escapeHtml(codeContent);
 
   const content = `
         <h1>Submission #${submission.id}</h1>
@@ -590,14 +674,76 @@ function getSubmissionHtml(
             document.getElementById('abort-button').addEventListener('click', () => {
                 vscode.postMessage({ command: 'abort', submissionId: ${
                   submission.id
-                } }); // Pass submissionId back
+                } });
             });
         </script>
         `
             : ""
         }
     `;
-  return getWebviewContent(content, webview, extensionUri);
+    
+  // Add CSS for judge details
+  const baseWebviewHtml = getWebviewContent(content, webview, extensionUri);
+  return baseWebviewHtml.replace('</style>', `
+    /* Judge Details Styling */
+    .judge-details {
+      margin: 1em 0;
+    }
+    .judge-summary {
+      background-color: var(--vscode-editor-inactiveSelectionBackground);
+      border-radius: 4px;
+      padding: 0.8em;
+      margin-bottom: 1em;
+    }
+    .judge-summary-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.5em;
+    }
+    .judge-groups {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5em;
+    }
+    .judge-group {
+      border: 1px solid var(--vscode-editorWidget-border);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .judge-group summary {
+      padding: 0.6em 1em;
+      background-color: var(--vscode-editor-inactiveSelectionBackground);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+    }
+    .judge-group summary:hover {
+      background-color: var(--vscode-list-hoverBackground);
+    }
+    .judge-group-content {
+      padding: 0.6em;
+    }
+    .testpoint-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .testpoint-table th, .testpoint-table td {
+      padding: 0.4em 0.6em;
+      text-align: left;
+      border-bottom: 1px solid var(--vscode-editorWidget-border);
+    }
+    .group-title {
+      font-weight: bold;
+    }
+    /* Status colors */
+    .status-accepted { color: var(--vscode-testing-iconPassed, #2cbb4b); }
+    .status-wrong-answer, .status-runtime-error, .status-time-limit-exceeded, 
+    .status-memory-limit-exceeded, .status-failed { 
+      color: var(--vscode-testing-iconFailed, #f14c4c); 
+    }
+    .status-partial { color: var(--vscode-charts-yellow, #e2b73d); }
+    </style>`);
 }
 
 // simple HTML escaping
