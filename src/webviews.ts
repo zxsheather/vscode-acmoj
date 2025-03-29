@@ -127,7 +127,14 @@ export async function showSubmissionDetails(
     column || vscode.ViewColumn.One,
     {
       enableScripts: true,
-      // localResourceRoots: [...]
+      localResourceRoots: [
+        vscode.Uri.joinPath(
+            context.extensionUri,
+            "node_modules",
+            "katex",
+            "dist"
+            ),
+        ]
     }
   );
   submissionPanels.set(submissionId, panel);
@@ -231,17 +238,22 @@ function getWebviewContent(
   );
   const katexFontsUri = webview.asWebviewUri(vscode.Uri.joinPath(katexDistUri, 'fonts'));
 
+  // console.log("KaTeX CSS URI:", katexCssUri.toString());
+  // console.log("KaTeX Fonts Directory URI:", katexFontsUri.toString());
+
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-     <meta http-equiv="Content-Security-Policy" content="
-        default-src 'none';
-        style-src ${cspSource} 'unsafe-inline';
-        font-src ${cspSource} ${katexFontsUri} ; /* Allow loading fonts */
-        img-src ${cspSource} https: data:;
-        script-src 'nonce-${nonce}'; /* Allow only nonced scripts (e.g., for buttons) */
+    
+    <meta http-equiv="Content-Security-Policy" content="
+    default-src 'none';
+    style-src ${webview.cspSource} 'unsafe-inline';
+    font-src ${webview.cspSource};
+    img-src ${webview.cspSource} https: data:;
+    script-src 'nonce-${nonce}';
     ">
+
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <!-- KaTeX CSS -->
@@ -358,21 +370,15 @@ function getWebviewContent(
         .katex {
              font-size: 1.2em; /* Slightly larger math font */
         }
-
         .katex-display {
-            overflow-x: auto;
-            overflow-y: hidden;
-            padding: 0.5em 0;
+             margin: 1em 0;
+             text-align: center;
         }
 
     </style>
 </head>
 <body>
     ${content}
-    <!-- Script to run KaTeX auto-render -->
-    <script nonce="${nonce}">
-        
-    </script>
 </body>
 </html>`;
 }
@@ -385,14 +391,9 @@ function getProblemHtml(
     webview: vscode.Webview,
     extensionUri: vscode.Uri
   ): string {
-    console.log("--- Raw Problem Description ---");
-    console.log(problem.description);
-    // Now render:
     const descriptionHtml = md.render(
     problem.description || "*No description provided.*"
     );
-    console.log("--- Rendered Description HTML ---");
-    console.log(descriptionHtml);
     const inputHtml = md.render(problem.input || "*No input format specified.*");
     const outputHtml = md.render(
       problem.output || "*No output format specified.*"
@@ -450,7 +451,7 @@ function getProblemHtml(
     // Construct the main content
     const content = `
           <h1>${problem.id}: ${escapeHtml(problem.title)}</h1>
-          <button id="submit-button">Submit Code for this Problem</button>
+          <!--<button id="submit-button">Submit Code for this Problem</button>-->
   
           <div class="section">
               <h2>Description</h2>
@@ -496,7 +497,7 @@ function getProblemHtml(
                       problem.id
                       } });
                   });
-              }
+            }
           </script>
       `;
     return getWebviewContent(content, webview, extensionUri);

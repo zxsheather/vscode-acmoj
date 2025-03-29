@@ -64,3 +64,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 
 *   The initial simple "Problems" list view provider (superseded by `ProblemsetProvider`).
+
+## [0.2.0] - 2025-3-29
+
+### Fixed
+
+*   Fixed the issue where the `katex` library was not being loaded correctly in the Webview, causing LaTeX rendering to fail.
+*   Resolved the problem with the `markdown-it` library not being loaded correctly in the Webview, which affected Markdown rendering.

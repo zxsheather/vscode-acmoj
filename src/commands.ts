@@ -1,7 +1,6 @@
 import * as vscode from "vscode";
 import { ApiClient } from "./api";
 import { AuthService } from "./auth";
-// Import the renamed provider
 import { ProblemsetProvider } from "./views/problemsetProvider";
 import { SubmissionProvider } from "./views/submissionProvider";
 import { showProblemDetails, showSubmissionDetails } from "./webviews";

@@ -40,7 +40,7 @@ This extension allows you to browse problemsets (contests/homework), view proble
 
 1.  **Generate a Personal Access Token (PAT):**
     *   Log in to the ACMOJ website.
-    *   Navigate to your user settings (usually top-right corner menu) and find the "API" or "Developer Settings" section.
+    *   Navigate to your user settings (usually top-right corner menu) and find the "API" section.
     *   Generate a new Personal Access Token. **Crucially, ensure you grant it the necessary scopes** (e.g., `user:profile`, `problem:read`, `submission:read`, `submission:create`, `problemset:read`). Copy the generated token (it often looks like `acmoj-XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX`).
 2.  **Set the Token in VS Code:**
     *   Open the Command Palette (`Ctrl+Shift+P` or `Cmd+Shift+P`).
@@ -48,7 +48,7 @@ This extension allows you to browse problemsets (contests/homework), view proble
     *   Paste your copied PAT into the input box and press Enter.
     *   The extension will attempt to validate the token. The status bar item should update to show your username upon success.
 3.  **Explore the ACMOJ Activity Bar:**
-    *   Click the ACMOJ icon (usually a beaker `$(beaker)`) in the Activity Bar on the left.
+    *   Click the ACMOJ icon (usually a checklist `$(checklist)`) in the Activity Bar on the left.
     *   You will see two views: "Problemsets" and "My Submissions".
     *   Use the refresh icon `$(refresh)` in the view title bars to update the lists.
 4.  **Viewing Problems:**
@@ -74,7 +74,11 @@ This extension contributes the following settings (accessible via `File > Prefer
 
 *  Pagination for problemsets and submissions is not yet implemented (only shows the first page).
 *  Error handling can be improved for edge cases.
-*  kaTeX rendering redendered 2 times in the webview.
+
+## TODO
+
+*   Implement pagination for problemsets and submissions.
+*   More user-friendly submission result display.
 
 ## Contributing
 
