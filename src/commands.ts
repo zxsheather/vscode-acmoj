@@ -1,4 +1,3 @@
-// src/commands.ts
 import * as vscode from "vscode";
 import { ApiClient } from "./api";
 import { AuthService } from "./auth";
