@@ -1,8 +1,10 @@
 # ACMOJ Helper for VS Code
 
-# [![Version](https://img.shields.io/visual-studio-marketplace/v/theunknownthing.acmoj-helper.svg?style=flat-square)](https://marketplace.visualstudio.com/items?itemName=theunknownthing.acmoj-helper)
-# [![Installs](https://img.shields.io/visual-studio-marketplace/i/theunknownthing.acmoj-helper.svg?style=flat-square)](https://marketplace.visualstudio.com/items?itemName=theunknownthing.acmoj-helper)
-# [![License](https://img.shields.io/github/license/theunknownthing/vscode-acmoj.svg?style=flat-square)](LICENSE.md)
+[![Version](https://img.shields.io/visual-studio-marketplace/v/theunknownthing.vscode-acmoj.svg?style=flat-square)](https://marketplace.visualstudio.com/items?itemName=theunknownthing.vscode-acmoj)
+
+[![Installs](https://img.shields.io/visual-studio-marketplace/i/theunknownthing.vscode-acmoj.svg?style=flat-square)](https://marketplace.visualstudio.com/items?itemName=theunknownthing.vscode-acmoj)
+
+[![License](https://img.shields.io/github/license/theunknownthing/vscode-acmoj.svg?style=flat-square)](LICENSE.md)
 
 **Interact with ACM Class Online Judge (ACMOJ) directly within Visual Studio Code.**
 
