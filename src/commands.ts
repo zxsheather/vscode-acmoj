@@ -31,8 +31,7 @@ export function registerCommands(
       const profile = authService.getProfile();
       if (profile) {
         vscode.window.showInformationMessage(
-          `Logged in as: ${profile.friendly_name} (${profile.username}), ID: ${
-            profile.student_id || "N/A"
+          `Logged in as: ${profile.friendly_name} (${profile.username}), ID: ${profile.student_id || "N/A"
           }`,
           { modal: false }
         );
@@ -148,11 +147,28 @@ export function registerCommands(
           problemId = contextArgs.problemId;
         }
 
+        let attemptedProblemId: number | undefined;
         if (typeof problemId !== "number") {
+          // read the first line. if it is "// acmoj: xxx", use xxx as the problem ID
+          const firstLine = code.split("\n")[0].trim();
+          const matchFirstLine = firstLine.match(/(?:\/\/|#)\s*acmoj:\s*(\d+)/);
+          if (matchFirstLine) {
+            attemptedProblemId = parseInt(matchFirstLine[1], 10);
+          }
+          else {
+            // attempt to fetch the problem ID from the file name
+            const fileName = document.fileName;
+            const matchFileName = fileName.match(/\bP?(\d+)(?:\b|_)/);
+            if (matchFileName) {
+              attemptedProblemId = parseInt(matchFileName[1], 10);
+            }
+          }
+
           const problemIdStr = await vscode.window.showInputBox({
             prompt: "Enter the Problem ID to submit to",
             validateInput: (text) =>
               /^\d+$/.test(text) ? null : "Please enter a valid number ID",
+            value: attemptedProblemId ? attemptedProblemId.toString() : "",
           });
           if (!problemIdStr) return;
           problemId = parseInt(problemIdStr, 10);
@@ -197,6 +213,24 @@ export function registerCommands(
         if (!selectedLanguageItem) return; // User cancelled
 
         const selectedLanguage = selectedLanguageItem.label;
+
+        // write the problem ID to the first line of the file if it does not exist
+        if (!attemptedProblemId || attemptedProblemId !== problemId) {
+          const langCommentMap = {
+            cpp: "//",
+            python: "#",
+            java: "//",
+            c: "//",
+            git: "#",
+            verilog: "//",
+          }
+          if (selectedLanguage in langCommentMap) {
+            const newFirstLine = `${langCommentMap[selectedLanguage as keyof typeof langCommentMap]} acmoj: ${problemId}\n`;
+            const edit = new vscode.WorkspaceEdit();
+            edit.replace(document.uri, new vscode.Range(0, 0, 0, 0), newFirstLine);
+            await vscode.workspace.applyEdit(edit);
+          }
+        }
 
         const confirm = await vscode.window.showQuickPick(["Yes", "No"], {
           placeHolder: `Submit code for Problem ${problemId} using ${selectedLanguage}?`,
