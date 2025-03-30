@@ -174,11 +174,39 @@ export class ProblemsetProvider
         ) {
           // Sort problems by ID
           problemsetDetails.problems.sort((a, b) => a.id - b.id)
-          return problemsetDetails.problems.map(
-            (p) => new ProblemBriefTreeItem(p),
+
+          const result: AcmojTreeItem[] = []
+
+          // Add description as multiple line items
+          if (problemsetDetails.description) {
+            const descriptionLines = this.splitTextIntoLines(
+              problemsetDetails.description,
+            )
+
+            result.push(new ProblemsetBriefTreeItem('', true))
+
+            for (let i = 0; i < descriptionLines.length; i++) {
+              result.push(
+                new ProblemsetBriefTreeItem(descriptionLines[i], false),
+              )
+            }
+          } else {
+            result.push(
+              new ProblemsetBriefTreeItem('No description available', true),
+            )
+          }
+
+          // Add the problems after the description
+          result.push(
+            ...problemsetDetails.problems.map(
+              (p) => new ProblemBriefTreeItem(p),
+            ),
           )
+
+          return result
         } else {
           return [
+            new ProblemsetBriefTreeItem('No description available', true),
             new vscode.TreeItem(
               'No problems found in this problemset.',
               vscode.TreeItemCollapsibleState.None,
@@ -204,6 +232,12 @@ export class ProblemsetProvider
     }
 
     return []
+  }
+
+  // Helper function to split text into lines
+  private splitTextIntoLines(text: string): string[] {
+    const lines = text.split('\n')
+    return lines.map((line) => line.trim()).filter((line) => line.length > 0)
   }
 }
 
@@ -263,5 +297,28 @@ export class ProblemBriefTreeItem extends vscode.TreeItem {
         arguments: [problem.id], // Pass problem ID
       }
     }
+  }
+}
+
+// Represents a description of a problemset
+export class ProblemsetBriefTreeItem extends vscode.TreeItem {
+  constructor(
+    public readonly text: string,
+    public readonly isFirstLine: boolean = false,
+  ) {
+    super(
+      isFirstLine ? 'Problemset Description:' : text,
+      vscode.TreeItemCollapsibleState.None,
+    )
+
+    if (isFirstLine) {
+      this.description = text
+      this.iconPath = new vscode.ThemeIcon('info')
+    } else {
+      this.description = ''
+      // Indent non-first lines with spaces to make it visually appear as a block
+      this.label = `    ${text}`
+    }
+    this.contextValue = 'problemsetDescription'
   }
 }

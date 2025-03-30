@@ -93,3 +93,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 *   Added inference of problem id from the active editor's filename and comments.
+
+## [0.2.4] - 2025-3-30
+
+### Added
+
+*   Added description of problemset in problemsetProvider.
