@@ -26,6 +26,8 @@ export class ApiClient {
       headers: {
         Accept: 'application/json',
       },
+      timeout: 5000,
+      timeoutErrorMessage: 'Request timed out. Please try again.',
     })
 
     // Request interceptor - GETS THE TOKEN
