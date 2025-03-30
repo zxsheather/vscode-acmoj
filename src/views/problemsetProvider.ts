@@ -187,7 +187,7 @@ export class ProblemsetProvider
 
             for (let i = 0; i < descriptionLines.length; i++) {
               result.push(
-                new ProblemsetBriefTreeItem(descriptionLines[i], false),
+                new ProblemsetBriefTreeItem('- ' + descriptionLines[i], false),
               )
             }
           } else {
@@ -234,9 +234,23 @@ export class ProblemsetProvider
     return []
   }
 
-  // Helper function to split text into lines
+  // Helper function to split text into lines and remove markdown formatting
   private splitTextIntoLines(text: string): string[] {
-    const lines = text.split('\n')
+    // Remove markdown formatting
+    const cleanText = text
+      .replace(/\*\*(.+?)\*\*/g, '$1') // bold
+      .replace(/\*(.+?)\*/g, '$1') // italic
+      .replace(/\_\_(.+?)\_\_/g, '$1') // bold
+      .replace(/\_(.+?)\_/g, '$1') // italic
+      .replace(/\[(.+?)\]\(.+?\)/g, '$1') // links
+      .replace(/\`\`\`[\s\S]*?\`\`\`/g, '') // code blocks
+      .replace(/\`(.+?)\`/g, '$1') // inline code
+      .replace(/\#{1,6}\s+(.+)/g, '$1') // headers
+      .replace(/^\s*>\s*(.*)$/gm, '$1') // blockquotes
+      .replace(/^\s*[\*\-\+]\s+/gm, '') // unordered lists
+      .replace(/^\s*\d+\.\s+/gm, '') // ordered lists
+
+    const lines = cleanText.split('\n')
     return lines.map((line) => line.trim()).filter((line) => line.length > 0)
   }
 }
