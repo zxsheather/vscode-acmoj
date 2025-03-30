@@ -183,30 +183,44 @@ export class ProblemsetProvider
               problemsetDetails.description,
             )
 
-            result.push(new ProblemsetBriefTreeItem('', true))
+            result.push(
+              new ProblemsetBriefTreeItem('', element.problemset.id, true),
+            )
 
             for (let i = 0; i < descriptionLines.length; i++) {
               result.push(
-                new ProblemsetBriefTreeItem('- ' + descriptionLines[i], false),
+                new ProblemsetBriefTreeItem(
+                  '- ' + descriptionLines[i],
+                  element.problemset.id,
+                  false,
+                ),
               )
             }
           } else {
             result.push(
-              new ProblemsetBriefTreeItem('No description available', true),
+              new ProblemsetBriefTreeItem(
+                'No description available',
+                element.problemset.id,
+                true,
+              ),
             )
           }
 
           // Add the problems after the description
           result.push(
             ...problemsetDetails.problems.map(
-              (p) => new ProblemBriefTreeItem(p),
+              (p) => new ProblemBriefTreeItem(p, element.problemset.id),
             ),
           )
 
           return result
         } else {
           return [
-            new ProblemsetBriefTreeItem('No description available', true),
+            new ProblemsetBriefTreeItem(
+              'No description available',
+              element.problemset.id,
+              true,
+            ),
             new vscode.TreeItem(
               'No problems found in this problemset.',
               vscode.TreeItemCollapsibleState.None,
@@ -296,14 +310,21 @@ export class ProblemsetTreeItem extends vscode.TreeItem {
 
 // Represents a Problem Brief within a Problemset (renamed from ProblemTreeItem)
 export class ProblemBriefTreeItem extends vscode.TreeItem {
-  constructor(public readonly problem: ProblemBrief) {
+  constructor(
+    public readonly problem: ProblemBrief,
+    public readonly problemsetId?: number,
+    public readonly isFirstLine: boolean = false,
+  ) {
     super(
       `${problem.id}: ${problem.title || '(Title Unavailable)'}`,
       vscode.TreeItemCollapsibleState.None, // Problems are leaf nodes here
     )
     this.tooltip = `Problem ${problem.id}`
     this.description = problem.title ? '' : 'Not published or no permission'
-    this.id = `problem-${problem.id}`
+    // Create a unique ID by combining problemset ID with problem ID
+    this.id = problemsetId
+      ? `problemset-${problemsetId}-problem-${problem.id}`
+      : `problem-${problem.id}`
     if (problem.id) {
       this.command = {
         command: 'acmoj.viewProblem',
@@ -318,6 +339,7 @@ export class ProblemBriefTreeItem extends vscode.TreeItem {
 export class ProblemsetBriefTreeItem extends vscode.TreeItem {
   constructor(
     public readonly text: string,
+    public readonly problemsetId?: number,
     public readonly isFirstLine: boolean = false,
   ) {
     super(
@@ -333,6 +355,10 @@ export class ProblemsetBriefTreeItem extends vscode.TreeItem {
       // Indent non-first lines with spaces to make it visually appear as a block
       this.label = `    ${text}`
     }
+    // Create a unique ID for description items as well
+    this.id = problemsetId
+      ? `problemset-${problemsetId}-description-${isFirstLine ? 'header' : Math.random().toString(36).substring(2, 10)}`
+      : undefined
     this.contextValue = 'problemsetDescription'
   }
 }
