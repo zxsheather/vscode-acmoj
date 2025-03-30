@@ -4,6 +4,12 @@ import { AuthService } from "./auth";
 import { ProblemsetProvider } from "./views/problemsetProvider";
 import { SubmissionProvider } from "./views/submissionProvider";
 import { showProblemDetails, showSubmissionDetails } from "./webviews";
+import { exec } from 'child_process'; // Node.js module to run shell commands
+import { promisify } from 'util'; // To use async/await with exec
+import * as path from 'path'; // Node.js module for path manipulation
+import { get } from "axios";
+
+const execAsync = promisify(exec); // used in getGitRemoteFetchUrls
 
 export function registerCommands(
   context: vscode.ExtensionContext,
@@ -135,7 +141,7 @@ export function registerCommands(
         }
 
         const document = editor.document;
-        const code = document.getText();
+        let code = document.getText();
         const fileLanguageId = document.languageId;
 
         let problemId: number | undefined;
@@ -250,11 +256,29 @@ export function registerCommands(
             git: "#",
             verilog: "//",
           }
-          if (selectedLanguage in langCommentMap) {
+          if (selectedLanguage in langCommentMap && !(
+            fileLanguageId !== "plaintext" && selectedLanguage === "git"  // in this setup, we don't want to overwrite the first line
+          )) {
             const newFirstLine = `${langCommentMap[selectedLanguage as keyof typeof langCommentMap]} acmoj: ${problemId}\n`;
             const edit = new vscode.WorkspaceEdit();
             edit.replace(document.uri, new vscode.Range(0, 0, 0, 0), newFirstLine);
             await vscode.workspace.applyEdit(edit);
+          }
+        }
+
+        if (selectedLanguage === "git") {
+          // make a single-select out of all the git remote repos and a "from current file" option
+          // write that literal (xxx.git) to var code
+          const remoteUrls = await getGitRemoteFetchUrls(
+            path.dirname(document.fileName)
+          );
+          const repoPath = await vscode.window.showQuickPick(
+            [...remoteUrls, "From Current File"],
+          )
+          if (!repoPath) return; // User cancelled
+          if (repoPath !== "From Current File") {
+            // overwrite code with the selected repo
+            code = repoPath;
           }
         }
 
@@ -348,4 +372,58 @@ function mapLanguageId(
     return potentialMatch;
   }
   return undefined;
+}
+
+/**
+ * Executes `git remote -v` and extracts unique fetch URLs.
+ * @param repoPath The absolute path to the git repository.
+ * @returns A Promise resolving to an array of unique fetch URL strings.
+ * @throws If git command fails (e.g., git not found, execution error).
+ */
+async function getGitRemoteFetchUrls(repoPath: string): Promise<string[]> {
+  const command = 'git remote -v';
+  const options = { cwd: path.resolve(repoPath) }; // Ensure absolute path
+  const fetchUrls = new Set<string>(); // Use a Set for automatic deduplication
+
+  try {
+    const { stdout, stderr } = await execAsync(command, options);
+
+    // Log stderr warnings if any, but don't treat them as fatal errors unless necessary
+    if (stderr && !stderr.toLowerCase().includes("warning")) {
+      console.warn(`Git stderr: ${stderr.trim()}`);
+    }
+
+    if (!stdout) {
+      // No output usually means no remotes configured
+      return [];
+    }
+
+    const lines = stdout.trim().split('\n');
+    // Regex to match lines like: origin    https://github.com/user/repo.git (fetch)
+    const lineRegex = /^\S+\s+(\S+)\s+\(fetch\)$/;
+
+    for (const line of lines) {
+      const match = line.match(lineRegex);
+      if (match && match[1]) {
+        fetchUrls.add(match[1]); // Add the captured URL (group 1)
+      }
+    }
+
+    return Array.from(fetchUrls); // Convert Set to Array
+
+  } catch (error: any) {
+    // Handle specific errors gracefully
+    if (error.stderr?.toLowerCase().includes('not a git repository') || error.message?.toLowerCase().includes('not a git repository')) {
+      // If the folder simply isn't a repo, return empty array - not necessarily an error for the caller
+      console.log(`Directory "${repoPath}" is not a Git repository.`);
+      return [];
+    } else if (error.code === 'ENOENT') {
+      // Git command not found
+      throw new Error(`'git' command not found. Make sure Git is installed and in your system's PATH.`);
+    } else {
+      // Other execution errors
+      console.error(`Error executing 'git remote -v' in ${repoPath}:`, error);
+      throw new Error(`Failed to list Git remotes: ${error.stderr || error.message}`);
+    }
+  }
 }
