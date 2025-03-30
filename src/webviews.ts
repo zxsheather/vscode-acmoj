@@ -693,11 +693,9 @@ function getSubmissionHtml(
         <script nonce="${scriptNonce}">
             const vscode = acquireVsCodeApi();
             
-            // 使用事件委托处理所有按钮点击
             document.addEventListener('click', function(event) {
                 const target = event.target;
                 
-                // 处理中止按钮
                 if (target.id === 'abort-button') {
                     vscode.postMessage({ 
                         command: 'abort', 
@@ -705,9 +703,7 @@ function getSubmissionHtml(
                     });
                 }
                 
-                // 处理在编辑器中打开按钮
                 if (target.id === 'open-in-editor-button') {
-                    console.log('按钮被点击');
                     const btn = target;
                     vscode.postMessage({ 
                         command: 'openInEditor',
@@ -721,7 +717,6 @@ function getSubmissionHtml(
         </script>
     `;
     
-  // 将同一个nonce传递给getWebviewContent
   const baseWebviewHtml = getWebviewContent(content, webview, extensionUri, scriptNonce);
   return baseWebviewHtml.replace('</style>', `
     /* Judge Details Styling */
