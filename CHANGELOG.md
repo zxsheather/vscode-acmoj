@@ -105,3 +105,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 *   Each problem in the tree will have a unique ID even if the same problem appears in multiple problemsets.
+
+### [0.2.6] - 2025-3-30
+
+### Added
+
+*   Infer type of submission from vscode language id.
+*   List of contributors in package.json.
+
+### Changed
+
+*   Better logic for Git submissions, with inference of git remotes.
