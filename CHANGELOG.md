@@ -133,3 +133,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 *   Added a command to copy the example input to the active terminal or clipboard.
+
+## [0.2.9] - 2025-3-30
+
+### Fixed
+
+*   Increased timeout for submission status check to 15 seconds.
+
+### Added
+
+*   Added back-to-first-page button to the submission list.

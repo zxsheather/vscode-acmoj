@@ -125,6 +125,9 @@ export function registerCommands(
     vscode.commands.registerCommand('acmoj.submissionPreviousPage', () => {
       submissionProvider.previousPage()
     }),
+    vscode.commands.registerCommand('acmoj.submissionBackToFirstPage', () => {
+      submissionProvider.resetPagination()
+    }),
 
     vscode.commands.registerCommand(
       'acmoj.submitCurrentFile',

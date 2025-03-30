@@ -11,6 +11,7 @@ import {
   Problemset,
 } from './types'
 import * as querystring from 'querystring'
+import * as https from 'https'
 
 export class ApiClient {
   private axiosInstance: AxiosInstance
@@ -21,13 +22,21 @@ export class ApiClient {
     const config = vscode.workspace.getConfiguration('acmoj')
     const baseUrl = config.get<string>('baseUrl', 'https://acm.sjtu.edu.cn')
 
+    const httpsAgent = new https.Agent({
+      rejectUnauthorized: true,
+      keepAlive: true,
+      timeout: 15000,
+    })
+
     this.axiosInstance = axios.create({
       baseURL: `${baseUrl}/OnlineJudge/api/v1`,
       headers: {
         Accept: 'application/json',
       },
-      timeout: 5000,
+      timeout: 15000,
       timeoutErrorMessage: 'Request timed out. Please try again.',
+      httpsAgent,
+      maxRedirects: 5,
     })
 
     // Request interceptor - GETS THE TOKEN
@@ -49,12 +58,28 @@ export class ApiClient {
       (response) => response,
       async (error: AxiosError<ApiError>) => {
         const originalRequest = error.config
+
+        // Detect TLS/socket connection issues
+        if (
+          error.message &&
+          (error.message.includes('socket') ||
+            error.message.includes('TLS') ||
+            error.message.includes('ECONNREFUSED') ||
+            error.message.includes('ENOTFOUND') ||
+            error.message.includes('timeout'))
+        ) {
+          console.error('TLS/Socket connection error:', error.message)
+
+          return Promise.reject(
+            new Error(
+              `Network connectivity issue: ${error.message}. Try checking your network connection or VPN settings.`,
+            ),
+          )
+        }
+
         if (error.response?.status === 401 && originalRequest) {
-          // Token is invalid or revoked
           console.warn('API request unauthorized (401). Invalidating token.')
-          // Call the AuthService method to handle this specific case
           await this.authService.handleUnauthorizedError()
-          // Reject the original request promise
           return Promise.reject(
             new Error('Invalid or expired token. Please set a new one.'),
           )

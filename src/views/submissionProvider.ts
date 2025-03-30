@@ -104,9 +104,12 @@ export class SubmissionProvider
         )
 
         // Add navigation controls
-        if (this.previousCursors.length > 0) {
+        if (this.previousCursors.length > 1) {
           result.unshift(
             new NavigationTreeItem('Previous Page', 'previous-page'),
+          )
+          result.unshift(
+            new NavigationTreeItem('Back to First Page', 'back-to-first-page'),
           )
         }
 
@@ -134,20 +137,35 @@ export class SubmissionProvider
 export class NavigationTreeItem extends vscode.TreeItem {
   constructor(
     label: string,
-    public readonly navigationAction: 'next-page' | 'previous-page',
+    public readonly navigationAction:
+      | 'next-page'
+      | 'previous-page'
+      | 'back-to-first-page',
   ) {
     super(label, vscode.TreeItemCollapsibleState.None)
 
-    this.iconPath =
-      navigationAction === 'next-page'
-        ? new vscode.ThemeIcon('arrow-right')
-        : new vscode.ThemeIcon('arrow-left')
+    let icon: vscode.ThemeIcon
+    let commandId: string
+
+    switch (navigationAction) {
+      case 'next-page':
+        icon = new vscode.ThemeIcon('arrow-right')
+        commandId = 'acmoj.submissionNextPage'
+        break
+      case 'previous-page':
+        icon = new vscode.ThemeIcon('arrow-left')
+        commandId = 'acmoj.submissionPreviousPage'
+        break
+      case 'back-to-first-page':
+        icon = new vscode.ThemeIcon('arrow-up')
+        commandId = 'acmoj.submissionBackToFirstPage'
+        break
+    }
+
+    this.iconPath = icon
 
     this.command = {
-      command:
-        navigationAction === 'next-page'
-          ? 'acmoj.submissionNextPage'
-          : 'acmoj.submissionPreviousPage',
+      command: commandId,
       title: label,
       arguments: [],
     }
