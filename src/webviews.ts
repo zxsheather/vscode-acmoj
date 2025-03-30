@@ -68,12 +68,36 @@ export async function showProblemDetails(
     )
 
     panel.webview.onDidReceiveMessage(
-      (message) => {
+      async (message) => {
         switch (message.command) {
-          case 'submit':
-            vscode.commands.executeCommand('acmoj.submitCurrentFile', {
-              problemId: message.problemId,
-            })
+          case 'copyToTerminal':
+            try {
+              const terminal =
+                vscode.window.activeTerminal ||
+                vscode.window.createTerminal('ACMOJ Example')
+              terminal.show()
+              terminal.sendText(message.content)
+              vscode.window.showInformationMessage(
+                'Example input copied to terminal.',
+              )
+            } catch (error: any) {
+              vscode.window.showErrorMessage(
+                `Failed to copy to terminal: ${error.message}`,
+              )
+            }
+            return
+
+          case 'copyToClipboard':
+            try {
+              await vscode.env.clipboard.writeText(message.content)
+              vscode.window.showInformationMessage(
+                'Example input copied to clipboard.',
+              )
+            } catch (error: any) {
+              vscode.window.showErrorMessage(
+                `Failed to copy to clipboard: ${error.message}`,
+              )
+            }
             return
         }
       },
@@ -241,7 +265,6 @@ function getWebviewContent(
 ): string {
   const nonce = providedNonce || getNonce()
 
-  // 确保CSP中的nonce和HTML中使用的nonce匹配
   const cspSource = webview.cspSource
 
   // --- Get URIs for KaTeX assets ---
@@ -427,47 +450,64 @@ function getProblemHtml(
     examplesHtml = problem.examples
       .map(
         (ex, i) => `
-              <h4>Example ${escapeHtml(ex.name) || i + 1}</h4>
-              ${ex.description ? `<p>${escapeHtml(ex.description)}</p>` : ''}
-              ${
-                ex.input !== undefined && ex.input !== null
-                  ? `<h5>Input:</h5><pre><code>${escapeHtml(
-                      ex.input,
-                    )}</code></pre>`
-                  : ''
-              }
-              ${
-                ex.output !== undefined && ex.output !== null
-                  ? `<h5>Output:</h5><pre><code>${escapeHtml(
-                      ex.output,
-                    )}</code></pre>`
-                  : ''
-              }
+              <div class="example-container">
+                <div class="example-header">
+                  <h4>Example ${escapeHtml(ex.name) || i + 1}</h4>
+                  <div class="copy-buttons">
+                    ${ex.input ? `<button class="copy-btn copy-to-terminal" data-content="${escapeHtml(ex.input)}" title="Copy input to terminal">⤷ Terminal</button>` : ''}
+                    ${ex.input ? `<button class="copy-btn copy-to-clipboard" data-content="${escapeHtml(ex.input)}" title="Copy input to clipboard">⎘ Clipboard</button>` : ''}
+                  </div>
+                </div>
+                ${ex.description ? `<p>${escapeHtml(ex.description)}</p>` : ''}
+                ${
+                  ex.input !== undefined && ex.input !== null
+                    ? `<h5>Input:</h5><pre><code>${escapeHtml(
+                        ex.input,
+                      )}</code></pre>`
+                    : ''
+                }
+                ${
+                  ex.output !== undefined && ex.output !== null
+                    ? `<h5>Output:</h5><pre><code>${escapeHtml(
+                        ex.output,
+                      )}</code></pre>`
+                    : ''
+                }
+              </div>
           `,
       )
       .join('')
   } else if (problem.example_input || problem.example_output) {
     // Legacy examples
     examplesHtml = `
-              <h4>Example</h4>
-              ${
-                problem.example_input
-                  ? `<h5>Input:</h5><pre><code>${escapeHtml(
-                      problem.example_input,
-                    )}</code></pre>`
-                  : ''
-              }
-              ${
-                problem.example_output
-                  ? `<h5>Output:</h5><pre><code>${escapeHtml(
-                      problem.example_output,
-                    )}</code></pre>`
-                  : ''
-              }
+              <div class="example-container">
+                <div class="example-header">
+                  <h4>Example</h4>
+                  <div class="copy-buttons">
+                    ${problem.example_input ? `<button class="copy-btn copy-to-terminal" data-content="${escapeHtml(problem.example_input)}" title="Copy input to terminal">⤷ Terminal</button>` : ''}
+                    ${problem.example_input ? `<button class="copy-btn copy-to-clipboard" data-content="${escapeHtml(problem.example_input)}" title="Copy input to clipboard">⎘ Clipboard</button>` : ''}
+                  </div>
+                </div>
+                ${
+                  problem.example_input
+                    ? `<h5>Input:</h5><pre><code>${escapeHtml(
+                        problem.example_input,
+                      )}</code></pre>`
+                    : ''
+                }
+                ${
+                  problem.example_output
+                    ? `<h5>Output:</h5><pre><code>${escapeHtml(
+                        problem.example_output,
+                      )}</code></pre>`
+                    : ''
+                }
+              </div>
           `
   }
 
-  // Construct the main content
+  var scriptNonce = getNonce()
+
   const content = `
           <h1>${problem.id}: ${escapeHtml(problem.title)}</h1>
           <!--<button id="submit-button">Submit Code for this Problem</button>-->
@@ -506,105 +546,69 @@ function getProblemHtml(
               }</div>
           </div>
   
-          <script nonce="${getNonce()}">
-              // Add button listener script here
+          <script nonce="${scriptNonce}">
               const vscode = acquireVsCodeApi();
-              const submitButton = document.getElementById('submit-button');
-              if (submitButton) {
-                  submitButton.addEventListener('click', () => {
-                      vscode.postMessage({ command: 'submit', problemId: ${
-                        problem.id
-                      } });
-                  });
-            }
+
+              // Handle copy buttons
+              document.addEventListener('click', function(event) {
+                  const target = event.target;
+                  
+                  if (target.classList.contains('copy-to-terminal')) {
+                      const content = target.getAttribute('data-content');
+                      vscode.postMessage({ 
+                          command: 'copyToTerminal',
+                          content: content
+                      });
+                  }
+                  
+                  if (target.classList.contains('copy-to-clipboard')) {
+                      const content = target.getAttribute('data-content');
+                      vscode.postMessage({ 
+                          command: 'copyToClipboard',
+                          content: content
+                      });
+                  }
+              });
           </script>
       `
-  return getWebviewContent(content, webview, extensionUri)
-}
 
-/**
- * Formats the judge details into a more readable HTML structure
- */
-function formatJudgeDetails(details: any): string {
-  if (!details) {
-    return ''
-  }
+  const webviewHtml = getWebviewContent(
+    content,
+    webview,
+    extensionUri,
+    scriptNonce,
+  )
 
-  const resultClass = `status-${details.result.toLowerCase().replace(/_/g, '-')}`
-
-  const summaryHtml = `
-    <div class="judge-summary">
-      <h3>Summary</h3>
-      <div class="judge-summary-grid">
-        <div><strong>Result:</strong> <span class="${resultClass}">${details.result.toUpperCase()}</span></div>
-        <div><strong>Score:</strong> ${details.score}/100</div>
-        <div><strong>Total Time:</strong> ${details.resource_usage?.time_msecs || 0} ms</div>
-        <div><strong>Max Memory:</strong> ${((details.resource_usage?.memory_bytes || 0) / (1024 * 1024)).toFixed(2)} MB</div>
-      </div>
-    </div>
-  `
-
-  let groupsHtml = ''
-  if (details.groups && details.groups.length > 0) {
-    details.groups.forEach((group: any, index: number) => {
-      const groupResult = group.result.toLowerCase()
-      const groupClass = `status-${groupResult.replace(/_/g, '-')}`
-
-      let testpointsHtml = ''
-      group.testpoints?.forEach((testpoint: any) => {
-        const tpResult = testpoint.result.toLowerCase()
-        const tpClass = `status-${tpResult.replace(/_/g, '-')}`
-
-        testpointsHtml += `
-          <tr>
-            <td>#${testpoint.id}</td>
-            <td><span class="${tpClass}">${testpoint.result}</span></td>
-            <td>${testpoint.score}</td>
-            <td>${testpoint.resource_usage?.time_msecs || 0} ms</td>
-            <td>${((testpoint.resource_usage?.memory_bytes || 0) / (1024 * 1024)).toFixed(2)} MB</td>
-            <td>${testpoint.message || '-'}</td>
-          </tr>
-        `
-      })
-
-      groupsHtml += `
-        <details class="judge-group" ${index === 0 ? 'open' : ''}>
-          <summary>
-            <span class="group-title">Group #${group.id}</span>
-            <span class="group-result ${groupClass}">${group.result}</span>
-            <span class="group-score">Score: ${group.score}</span>
-          </summary>
-          <div class="judge-group-content">
-            <table class="testpoint-table">
-              <thead>
-                <tr>
-                  <th>Test</th>
-                  <th>Result</th>
-                  <th>Score</th>
-                  <th>Time</th>
-                  <th>Memory</th>
-                  <th>Message</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${testpointsHtml}
-              </tbody>
-            </table>
-          </div>
-        </details>
-      `
-    })
-  }
-
-  return `
-    <div class="judge-details">
-      ${summaryHtml}
-      <h3>Test Groups</h3>
-      <div class="judge-groups">
-        ${groupsHtml}
-      </div>
-    </div>
-  `
+  return webviewHtml.replace(
+    '</style>',
+    `
+    /* Example Copy Buttons Styling */
+   .example-container {
+      margin-bottom: 1.5em;
+    }
+    .exa mple-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .copy-buttons {
+      display: flex;
+      gap: 4px;
+    }
+    .copy-btn {
+      font-size: 0.8em;
+      padding: 0.2em 0.5em;
+      background-color: var(--vscode-button-secondaryBackground, rgba(100,100,100,0.2));
+      color: var(--vscode-button-secondaryForeground);
+      border: 1px solid transparent;
+      border-radius: 3px;
+      cursor: pointer;
+    }
+    .copy-btn:hover {
+      background-color: var(--vscode-button-secondaryHoverBackground);
+    }
+    </style>`,
+  )
 }
 
 /**
@@ -797,6 +801,91 @@ function getSubmissionHtml(
   )
 }
 
+/**
+ * Formats the judge details into a more readable HTML structure
+ */
+function formatJudgeDetails(details: any): string {
+  if (!details) {
+    return ''
+  }
+
+  const resultClass = `status-${details.result.toLowerCase().replace(/_/g, '-')}`
+
+  const summaryHtml = `
+    <div class="judge-summary">
+      <h3>Summary</h3>
+      <div class="judge-summary-grid">
+        <div><strong>Result:</strong> <span class="${resultClass}">${details.result.toUpperCase()}</span></div>
+        <div><strong>Score:</strong> ${details.score}/100</div>
+        <div><strong>Total Time:</strong> ${details.resource_usage?.time_msecs || 0} ms</div>
+        <div><strong>Max Memory:</strong> ${((details.resource_usage?.memory_bytes || 0) / (1024 * 1024)).toFixed(2)} MB</div>
+      </div>
+    </div>
+  `
+
+  let groupsHtml = ''
+  if (details.groups && details.groups.length > 0) {
+    details.groups.forEach((group: any, index: number) => {
+      const groupResult = group.result.toLowerCase()
+      const groupClass = `status-${groupResult.replace(/_/g, '-')}`
+
+      let testpointsHtml = ''
+      group.testpoints?.forEach((testpoint: any) => {
+        const tpResult = testpoint.result.toLowerCase()
+        const tpClass = `status-${tpResult.replace(/_/g, '-')}`
+
+        testpointsHtml += `
+          <tr>
+            <td>#${testpoint.id}</td>
+            <td><span class="${tpClass}">${testpoint.result}</span></td>
+            <td>${testpoint.score}</td>
+            <td>${testpoint.resource_usage?.time_msecs || 0} ms</td>
+            <td>${((testpoint.resource_usage?.memory_bytes || 0) / (1024 * 1024)).toFixed(2)} MB</td>
+            <td>${testpoint.message || '-'}</td>
+          </tr>
+        `
+      })
+
+      groupsHtml += `
+        <details class="judge-group" ${index === 0 ? 'open' : ''}>
+          <summary>
+            <span class="group-title">Group #${group.id}</span>
+            <span class="group-result ${groupClass}">${group.result}</span>
+            <span class="group-score">Score: ${group.score}</span>
+          </summary>
+          <div class="judge-group-content">
+            <table class="testpoint-table">
+              <thead>
+                <tr>
+                  <th>Test</th>
+                  <th>Result</th>
+                  <th>Score</th>
+                  <th>Time</th>
+                  <th>Memory</th>
+                  <th>Message</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${testpointsHtml}
+              </tbody>
+            </table>
+          </div>
+        </details>
+      `
+    })
+  }
+
+  return `
+    <div class="judge-details">
+      ${summaryHtml}
+      <h3>Test Groups</h3>
+      <div class="judge-groups">
+        ${groupsHtml}
+      </div>
+    </div>
+  `
+}
+
 // simple HTML escaping
 function escapeHtml(unsafe: string | null | undefined): string {
   if (unsafe === null || unsafe === undefined) return ''
@@ -837,7 +926,6 @@ async function openSubmissionCodeInEditor(
   }
 
   const languageId = mapLanguageToVscode(language)
-  const fileName = `ACMOJ_P${problemId}_S${submissionId}.${getFileExtension(languageId)}`
 
   const doc = await vscode.workspace.openTextDocument({
     content: code,
