@@ -106,7 +106,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 *   Each problem in the tree will have a unique ID even if the same problem appears in multiple problemsets.
 
-### [0.2.6] - 2025-3-30
+## [0.2.6] - 2025-3-30
 
 ### Added
 
@@ -116,3 +116,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 *   Better logic for Git submissions, with inference of git remotes.
+
+## [0.2.7] - 2025-3-30
+
+### Added
+
+*   Pagination to the submission list.
+
+### Fixed
+
+*   Icons for submission status.
+*   `npm run format` command to format all files in the project.

@@ -1,17 +1,16 @@
-import * as vscode from "vscode";
-import { ApiClient } from "./api";
-import { Problem, Submission } from "./types";
-import MarkdownIt from "markdown-it";
-import katexPlugin from '@vscode/markdown-it-katex';
+import * as vscode from 'vscode'
+import { ApiClient } from './api'
+import { Problem, Submission } from './types'
+import MarkdownIt from 'markdown-it'
+import katexPlugin from '@vscode/markdown-it-katex'
 
-const problemPanels: Map<number, vscode.WebviewPanel> = new Map();
-const submissionPanels: Map<number, vscode.WebviewPanel> = new Map();
+const problemPanels: Map<number, vscode.WebviewPanel> = new Map()
+const submissionPanels: Map<number, vscode.WebviewPanel> = new Map()
 const md = new MarkdownIt({
-    html: true,
-    linkify: true,
-    breaks: true,
-})
-.use(katexPlugin);
+  html: true,
+  linkify: true,
+  breaks: true,
+}).use(katexPlugin)
 
 /**
  * @brief show a Webview Panel with details of a problem
@@ -22,83 +21,83 @@ const md = new MarkdownIt({
 export async function showProblemDetails(
   problemId: number,
   apiClient: ApiClient,
-  context: vscode.ExtensionContext
+  context: vscode.ExtensionContext,
 ) {
   const column = vscode.window.activeTextEditor
     ? vscode.window.activeTextEditor.viewColumn
-    : undefined;
+    : undefined
 
   if (problemPanels.has(problemId)) {
-    problemPanels.get(problemId)?.reveal(column);
-    return;
+    problemPanels.get(problemId)?.reveal(column)
+    return
   }
 
   // Define the path to the KaTeX distribution
   const katexDistPath = vscode.Uri.joinPath(
     context.extensionUri,
-    "node_modules",
-    "katex",
-    "dist"
-  );
+    'node_modules',
+    'katex',
+    'dist',
+  )
 
   const panel = vscode.window.createWebviewPanel(
-    "acmojProblem",
+    'acmojProblem',
     `Problem ${problemId}`,
     column || vscode.ViewColumn.One,
     {
       enableScripts: true,
       localResourceRoots: [katexDistPath],
-    }
-  );
-  problemPanels.set(problemId, panel);
+    },
+  )
+  problemPanels.set(problemId, panel)
 
   // Set initial loading HTML
   panel.webview.html = getWebviewContent(
-    "Loading problem...",
+    'Loading problem...',
     panel.webview,
-    context.extensionUri
-  );
+    context.extensionUri,
+  )
 
   try {
-    const problem = await apiClient.getProblemDetails(problemId);
-    panel.title = `Problem ${problem.id}: ${problem.title}`;
+    const problem = await apiClient.getProblemDetails(problemId)
+    panel.title = `Problem ${problem.id}: ${problem.title}`
     panel.webview.html = getProblemHtml(
       problem,
       panel.webview,
-      context.extensionUri
-    );
+      context.extensionUri,
+    )
 
     panel.webview.onDidReceiveMessage(
       (message) => {
         switch (message.command) {
-          case "submit":
-            vscode.commands.executeCommand("acmoj.submitCurrentFile", {
+          case 'submit':
+            vscode.commands.executeCommand('acmoj.submitCurrentFile', {
               problemId: message.problemId,
-            });
-            return;
+            })
+            return
         }
       },
       undefined,
-      context.subscriptions
-    );
+      context.subscriptions,
+    )
   } catch (error: any) {
     panel.webview.html = getWebviewContent(
       `Error loading problem ${problemId}: ${error.message}`,
       panel.webview,
-      context.extensionUri
-    );
+      context.extensionUri,
+    )
     vscode.window.showErrorMessage(
-      `Failed to load problem ${problemId}: ${error.message}`
-    );
+      `Failed to load problem ${problemId}: ${error.message}`,
+    )
   }
 
   panel.onDidDispose(
     () => {
-      problemPanels.delete(problemId);
+      problemPanels.delete(problemId)
     },
     null,
-    context.subscriptions
-  );
+    context.subscriptions,
+  )
 }
 
 /**
@@ -110,69 +109,69 @@ export async function showProblemDetails(
 export async function showSubmissionDetails(
   submissionId: number,
   apiClient: ApiClient,
-  context: vscode.ExtensionContext
+  context: vscode.ExtensionContext,
 ) {
   const column = vscode.window.activeTextEditor
     ? vscode.window.activeTextEditor.viewColumn
-    : undefined;
+    : undefined
 
   if (submissionPanels.has(submissionId)) {
-    submissionPanels.get(submissionId)?.reveal(column);
-    return;
+    submissionPanels.get(submissionId)?.reveal(column)
+    return
   }
 
   const panel = vscode.window.createWebviewPanel(
-    "acmojSubmission",
+    'acmojSubmission',
     `Submission ${submissionId}`,
     column || vscode.ViewColumn.One,
     {
       enableScripts: true,
       localResourceRoots: [
         vscode.Uri.joinPath(
-            context.extensionUri,
-            "node_modules",
-            "katex",
-            "dist"
-            ),
-        ]
-    }
-  );
-  submissionPanels.set(submissionId, panel);
+          context.extensionUri,
+          'node_modules',
+          'katex',
+          'dist',
+        ),
+      ],
+    },
+  )
+  submissionPanels.set(submissionId, panel)
 
   panel.webview.html = getWebviewContent(
-    "Loading submission...",
+    'Loading submission...',
     panel.webview,
-    context.extensionUri
-  );
+    context.extensionUri,
+  )
 
   try {
-    const submission = await apiClient.getSubmissionDetails(submissionId);
+    const submission = await apiClient.getSubmissionDetails(submissionId)
     let codeContent = submission.code_url
-      ? "Loading code..."
-      : "Code not available or permission denied.";
+      ? 'Loading code...'
+      : 'Code not available or permission denied.'
     panel.webview.html = getSubmissionHtml(
       submission,
       codeContent,
       panel.webview,
-      context.extensionUri
-    );
+      context.extensionUri,
+    )
 
     if (submission.code_url) {
       try {
-        codeContent = await apiClient.getSubmissionCode(submission.code_url);
+        codeContent = await apiClient.getSubmissionCode(submission.code_url)
         panel.webview.html = getSubmissionHtml(
           submission,
           codeContent,
           panel.webview,
-          context.extensionUri
-        );
+          context.extensionUri,
+        )
       } catch (codeError: any) {
         panel.webview.html = getSubmissionHtml(
           submission,
           `Error loading code: ${codeError.message}`,
           panel.webview,
-          context.extensionUri
-        );
+          context.extensionUri,
+        )
       }
     }
 
@@ -180,51 +179,53 @@ export async function showSubmissionDetails(
     panel.webview.onDidReceiveMessage(
       async (message) => {
         switch (message.command) {
-          case "abort":
+          case 'abort':
             if (submission.abort_url) {
               vscode.commands.executeCommand(
-                "acmoj.abortSubmission",
-                submission.id
-              );
+                'acmoj.abortSubmission',
+                submission.id,
+              )
             }
-            return;
-            
-          case "openInEditor":
+            return
+
+          case 'openInEditor':
             try {
-              const code = await apiClient.getSubmissionCode(message.codeUrl);
+              const code = await apiClient.getSubmissionCode(message.codeUrl)
               await openSubmissionCodeInEditor(
                 code,
                 message.language,
                 message.problemId,
-                message.submissionId
-              );
+                message.submissionId,
+              )
             } catch (error: any) {
-              vscode.window.showErrorMessage(`Failed to open code: ${error.message}`);
+              vscode.window.showErrorMessage(
+                `Failed to open code: ${error.message}`,
+              )
             }
-            return;
+            return
         }
       },
       undefined,
-      context.subscriptions
-    );
+      context.subscriptions,
+    )
   } catch (error: any) {
     panel.webview.html = getWebviewContent(
       `Error loading submission ${submissionId}: ${error.message}`,
       panel.webview,
-      context.extensionUri
-    );
+      context.extensionUri,
+    )
     vscode.window.showErrorMessage(
-      `Failed to load submission ${submissionId}: ${error.message}`
-    );
+      `Failed to load submission ${submissionId}: ${error.message}`,
+    )
   }
 
   panel.onDidDispose(
     () => {
-      submissionPanels.delete(submissionId);
+      submissionPanels.delete(submissionId)
     },
     null,
-    context.subscriptions
-  );
+    context.subscriptions,
+  )
 }
 
 // --- HTML Generation ---
@@ -236,24 +237,26 @@ function getWebviewContent(
   content: string,
   webview: vscode.Webview,
   extensionUri: vscode.Uri,
-  providedNonce?: string
+  providedNonce?: string,
 ): string {
-  const nonce = providedNonce || getNonce();
-  
+  const nonce = providedNonce || getNonce()
+
   // 确保CSP中的nonce和HTML中使用的nonce匹配
-  const cspSource = webview.cspSource;
+  const cspSource = webview.cspSource
 
   // --- Get URIs for KaTeX assets ---
   const katexDistUri = vscode.Uri.joinPath(
     extensionUri,
-    "node_modules",
-    "katex",
-    "dist"
-  );
+    'node_modules',
+    'katex',
+    'dist',
+  )
   const katexCssUri = webview.asWebviewUri(
-    vscode.Uri.joinPath(katexDistUri, "katex.min.css")
-  );
-  const katexFontsUri = webview.asWebviewUri(vscode.Uri.joinPath(katexDistUri, 'fonts'));
+    vscode.Uri.joinPath(katexDistUri, 'katex.min.css'),
+  )
+  const katexFontsUri = webview.asWebviewUri(
+    vscode.Uri.joinPath(katexDistUri, 'fonts'),
+  )
 
   // console.log("KaTeX CSS URI:", katexCssUri.toString());
   // console.log("KaTeX Fonts Directory URI:", katexFontsUri.toString());
@@ -397,76 +400,75 @@ function getWebviewContent(
 <body>
     ${content}
 </body>
-</html>`;
+</html>`
 }
 
 /**
  * Generates the HTML content for the problem details webview, using Markdown rendering.
  */
 function getProblemHtml(
-    problem: Problem,
-    webview: vscode.Webview,
-    extensionUri: vscode.Uri
-  ): string {
-    const descriptionHtml = md.render(
-    problem.description || "*No description provided.*"
-    );
-    const inputHtml = md.render(problem.input || "*No input format specified.*");
-    const outputHtml = md.render(
-      problem.output || "*No output format specified.*"
-    );
-    const dataRangeHtml = md.render(
-      problem.data_range || "*No data range specified.*"
-    );
-  
-    let examplesHtml = "";
-    if (problem.examples && problem.examples.length > 0) {
-      examplesHtml = problem.examples
-        .map(
-          (ex, i) => `
+  problem: Problem,
+  webview: vscode.Webview,
+  extensionUri: vscode.Uri,
+): string {
+  const descriptionHtml = md.render(
+    problem.description || '*No description provided.*',
+  )
+  const inputHtml = md.render(problem.input || '*No input format specified.*')
+  const outputHtml = md.render(
+    problem.output || '*No output format specified.*',
+  )
+  const dataRangeHtml = md.render(
+    problem.data_range || '*No data range specified.*',
+  )
+
+  let examplesHtml = ''
+  if (problem.examples && problem.examples.length > 0) {
+    examplesHtml = problem.examples
+      .map(
+        (ex, i) => `
               <h4>Example ${escapeHtml(ex.name) || i + 1}</h4>
-              ${ex.description ? `<p>${escapeHtml(ex.description)}</p>` : ""}
+              ${ex.description ? `<p>${escapeHtml(ex.description)}</p>` : ''}
               ${
                 ex.input !== undefined && ex.input !== null
                   ? `<h5>Input:</h5><pre><code>${escapeHtml(
-                      ex.input
+                      ex.input,
                     )}</code></pre>`
-                  : ""
+                  : ''
               }
               ${
                 ex.output !== undefined && ex.output !== null
                   ? `<h5>Output:</h5><pre><code>${escapeHtml(
-                      ex.output
+                      ex.output,
                     )}</code></pre>`
-                  : ""
+                  : ''
               }
-          `
-        )
-        .join("");
-    } else if (problem.example_input || problem.example_output) {
-      // Legacy examples
-      examplesHtml = `
+          `,
+      )
+      .join('')
+  } else if (problem.example_input || problem.example_output) {
+    // Legacy examples
+    examplesHtml = `
               <h4>Example</h4>
               ${
                 problem.example_input
                   ? `<h5>Input:</h5><pre><code>${escapeHtml(
-                      problem.example_input
+                      problem.example_input,
                     )}</code></pre>`
-                  : ""
+                  : ''
               }
               ${
                 problem.example_output
                   ? `<h5>Output:</h5><pre><code>${escapeHtml(
-                      problem.example_output
+                      problem.example_output,
                     )}</code></pre>`
-                  : ""
+                  : ''
               }
-          `;
-    }
-  
-  
-    // Construct the main content
-    const content = `
+          `
+  }
+
+  // Construct the main content
+  const content = `
           <h1>${problem.id}: ${escapeHtml(problem.title)}</h1>
           <!--<button id="submit-button">Submit Code for this Problem</button>-->
   
@@ -487,7 +489,7 @@ function getProblemHtml(
   
           <div class="section">
               <h2>Examples</h2>
-              ${examplesHtml || "*No examples provided.*"}
+              ${examplesHtml || '*No examples provided.*'}
           </div>
   
            <div class="section">
@@ -499,8 +501,8 @@ function getProblemHtml(
               <h2>Accepted Languages</h2>
               <div>${
                 problem.languages_accepted
-                  ? escapeHtml(problem.languages_accepted.join(", "))
-                  : "N/A"
+                  ? escapeHtml(problem.languages_accepted.join(', '))
+                  : 'N/A'
               }</div>
           </div>
   
@@ -511,25 +513,25 @@ function getProblemHtml(
               if (submitButton) {
                   submitButton.addEventListener('click', () => {
                       vscode.postMessage({ command: 'submit', problemId: ${
-                      problem.id
+                        problem.id
                       } });
                   });
             }
           </script>
-      `;
-    return getWebviewContent(content, webview, extensionUri);
-  }
+      `
+  return getWebviewContent(content, webview, extensionUri)
+}
 
 /**
  * Formats the judge details into a more readable HTML structure
  */
 function formatJudgeDetails(details: any): string {
   if (!details) {
-    return "";
+    return ''
   }
-  
-  const resultClass = `status-${details.result.toLowerCase().replace(/_/g, "-")}`;
-  
+
+  const resultClass = `status-${details.result.toLowerCase().replace(/_/g, '-')}`
+
   const summaryHtml = `
     <div class="judge-summary">
       <h3>Summary</h3>
@@ -540,19 +542,19 @@ function formatJudgeDetails(details: any): string {
         <div><strong>Max Memory:</strong> ${((details.resource_usage?.memory_bytes || 0) / (1024 * 1024)).toFixed(2)} MB</div>
       </div>
     </div>
-  `;
-  
-  let groupsHtml = '';
+  `
+
+  let groupsHtml = ''
   if (details.groups && details.groups.length > 0) {
     details.groups.forEach((group: any, index: number) => {
-      const groupResult = group.result.toLowerCase();
-      const groupClass = `status-${groupResult.replace(/_/g, "-")}`;
-      
-      let testpointsHtml = '';
+      const groupResult = group.result.toLowerCase()
+      const groupClass = `status-${groupResult.replace(/_/g, '-')}`
+
+      let testpointsHtml = ''
       group.testpoints?.forEach((testpoint: any) => {
-        const tpResult = testpoint.result.toLowerCase();
-        const tpClass = `status-${tpResult.replace(/_/g, "-")}`;
-        
+        const tpResult = testpoint.result.toLowerCase()
+        const tpClass = `status-${tpResult.replace(/_/g, '-')}`
+
         testpointsHtml += `
           <tr>
             <td>#${testpoint.id}</td>
@@ -562,9 +564,9 @@ function formatJudgeDetails(details: any): string {
             <td>${((testpoint.resource_usage?.memory_bytes || 0) / (1024 * 1024)).toFixed(2)} MB</td>
             <td>${testpoint.message || '-'}</td>
           </tr>
-        `;
-      });
-      
+        `
+      })
+
       groupsHtml += `
         <details class="judge-group" ${index === 0 ? 'open' : ''}>
           <summary>
@@ -590,10 +592,10 @@ function formatJudgeDetails(details: any): string {
             </table>
           </div>
         </details>
-      `;
-    });
+      `
+    })
   }
-  
+
   return `
     <div class="judge-details">
       ${summaryHtml}
@@ -602,7 +604,7 @@ function formatJudgeDetails(details: any): string {
         ${groupsHtml}
       </div>
     </div>
-  `;
+  `
 }
 
 /**
@@ -612,21 +614,21 @@ function getSubmissionHtml(
   submission: Submission,
   codeContent: string,
   webview: vscode.Webview,
-  extensionUri: vscode.Uri
+  extensionUri: vscode.Uri,
 ): string {
   const statusClass = `status-${submission.status
     .toLowerCase()
-    .replace(/_/g, "-")}`;
+    .replace(/_/g, '-')}`
   const abortButtonHtml = submission.abort_url
     ? `<button id="abort-button">Abort Submission</button>`
-    : "";
+    : ''
 
   const messageHtml = submission.message
     ? `<p><span class="label">Message:</span> ${escapeHtml(
-        submission.message
+        submission.message,
       )}</p>`
-    : "";
-    
+    : ''
+
   // Format judge details with the new formatter instead of raw JSON
   const detailsHtml = submission.details
     ? `
@@ -635,14 +637,14 @@ function getSubmissionHtml(
             ${formatJudgeDetails(submission.details)}
         </div>
     `
-    : "";
-    
-  const problemTitleHtml = escapeHtml(submission.problem?.title || "?");
-  const friendlyNameHtml = escapeHtml(submission.friendly_name);
-  const codeHtml = escapeHtml(codeContent);
+    : ''
+
+  const problemTitleHtml = escapeHtml(submission.problem?.title || '?')
+  const friendlyNameHtml = escapeHtml(submission.friendly_name)
+  const codeHtml = escapeHtml(codeContent)
 
   // Generate a nonce for the script tag
-  const scriptNonce = getNonce();
+  const scriptNonce = getNonce()
 
   const content = `
         <h1>Submission #${submission.id}</h1>
@@ -655,26 +657,26 @@ function getSubmissionHtml(
             }: ${problemTitleHtml}</p>
             <p><span class="label">User:</span> ${friendlyNameHtml}</p>
             <p><span class="label">Status:</span> <strong class="${statusClass}">${
-    submission.status
-  }</strong></p>
+              submission.status
+            }</strong></p>
             ${
               submission.should_show_score && submission.score !== null
                 ? `<p><span class="label">Score:</span> ${submission.score}</p>`
-                : ""
+                : ''
             }
             <p><span class="label">Language:</span> ${submission.language}</p>
             <p><span class="label">Time:</span> ${
               submission.time_msecs !== null
                 ? `${submission.time_msecs} ms`
-                : "N/A"
+                : 'N/A'
             }</p>
             <p><span class="label">Memory:</span> ${
               submission.memory_bytes !== null
                 ? `${(submission.memory_bytes / 1024 / 1024).toFixed(2)} MB`
-                : "N/A"
+                : 'N/A'
             }</p>
             <p><span class="label">Submitted At:</span> ${new Date(
-              submission.created_at
+              submission.created_at,
             ).toLocaleString()}</p>
             ${messageHtml}
         </div>
@@ -715,10 +717,17 @@ function getSubmissionHtml(
                 }
             });
         </script>
-    `;
-    
-  const baseWebviewHtml = getWebviewContent(content, webview, extensionUri, scriptNonce);
-  return baseWebviewHtml.replace('</style>', `
+    `
+
+  const baseWebviewHtml = getWebviewContent(
+    content,
+    webview,
+    extensionUri,
+    scriptNonce,
+  )
+  return baseWebviewHtml.replace(
+    '</style>',
+    `
     /* Judge Details Styling */
     .judge-details {
       margin: 1em 0;
@@ -784,59 +793,62 @@ function getSubmissionHtml(
       margin-bottom: 1em;
       cursor: pointer;
     }
-    </style>`);
+    </style>`,
+  )
 }
 
 // simple HTML escaping
 function escapeHtml(unsafe: string | null | undefined): string {
-  if (unsafe === null || unsafe === undefined) return "";
+  if (unsafe === null || unsafe === undefined) return ''
   return unsafe
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;')
 }
 
 // simple rendering of content with line breaks
 function getNonce(): string {
-  let text = "";
+  let text = ''
   const possible =
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+    'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
   for (let i = 0; i < 32; i++) {
-    text += possible.charAt(Math.floor(Math.random() * possible.length));
+    text += possible.charAt(Math.floor(Math.random() * possible.length))
   }
-  return text;
+  return text
 }
 
 /**
  * Open the submission code in the editor
- * @param code 
- * @param language 
- * @param problemId 
- * @param submissionId 
+ * @param code
+ * @param language
+ * @param problemId
+ * @param submissionId
  */
 async function openSubmissionCodeInEditor(
   code: string,
   language: string,
   problemId: number,
-  submissionId: number
+  submissionId: number,
 ): Promise<void> {
   if (!code) {
-    throw new Error('Code content is empty or not available.');
+    throw new Error('Code content is empty or not available.')
   }
 
-  const languageId = mapLanguageToVscode(language);
-  const fileName = `ACMOJ_P${problemId}_S${submissionId}.${getFileExtension(languageId)}`;
-  
+  const languageId = mapLanguageToVscode(language)
+  const fileName = `ACMOJ_P${problemId}_S${submissionId}.${getFileExtension(languageId)}`
+
   const doc = await vscode.workspace.openTextDocument({
     content: code,
-    language: languageId
-  });
-  
-  await vscode.window.showTextDocument(doc);
-  
-  vscode.window.showInformationMessage(`Have opened code for submission #${submissionId} in ${languageId} editor.`);
+    language: languageId,
+  })
+
+  await vscode.window.showTextDocument(doc)
+
+  vscode.window.showInformationMessage(
+    `Have opened code for submission #${submissionId} in ${languageId} editor.`,
+  )
 }
 
 /**
@@ -844,35 +856,35 @@ async function openSubmissionCodeInEditor(
  */
 function mapLanguageToVscode(language: string): string {
   const languageMap: Record<string, string> = {
-    'cpp': 'cpp',
+    cpp: 'cpp',
     'c++': 'cpp',
-    'c': 'c',
-    'java': 'java',
-    'python': 'python',
-    'python2': 'python',
-    'python3': 'python',
-    'javascript': 'javascript',
-    'js': 'javascript',
-    'typescript': 'typescript',
-    'ts': 'typescript',
-    'csharp': 'csharp',
+    c: 'c',
+    java: 'java',
+    python: 'python',
+    python2: 'python',
+    python3: 'python',
+    javascript: 'javascript',
+    js: 'javascript',
+    typescript: 'typescript',
+    ts: 'typescript',
+    csharp: 'csharp',
     'c#': 'csharp',
-    'php': 'php',
-    'ruby': 'ruby',
-    'go': 'go',
-    'rust': 'rust',
-    'scala': 'scala',
-    'kotlin': 'kotlin',
-    'swift': 'swift',
-    'pascal': 'pascal',
-    'fortran': 'fortran',
-    'haskell': 'haskell',
-    'verilog': 'verilog',
-    'plaintext': 'plaintext',
-    'git': 'plaintext'
-  };
-  
-  return languageMap[language.toLowerCase()] || 'plaintext';
+    php: 'php',
+    ruby: 'ruby',
+    go: 'go',
+    rust: 'rust',
+    scala: 'scala',
+    kotlin: 'kotlin',
+    swift: 'swift',
+    pascal: 'pascal',
+    fortran: 'fortran',
+    haskell: 'haskell',
+    verilog: 'verilog',
+    plaintext: 'plaintext',
+    git: 'plaintext',
+  }
+
+  return languageMap[language.toLowerCase()] || 'plaintext'
 }
 
 /**
@@ -880,26 +892,26 @@ function mapLanguageToVscode(language: string): string {
  */
 function getFileExtension(languageId: string): string {
   const extensionMap: Record<string, string> = {
-    'cpp': 'cpp',
-    'c': 'c',
-    'java': 'java',
-    'python': 'py',
-    'javascript': 'js',
-    'typescript': 'ts',
-    'csharp': 'cs',
-    'php': 'php',
-    'ruby': 'rb',
-    'go': 'go',
-    'rust': 'rs',
-    'scala': 'scala',
-    'kotlin': 'kt',
-    'swift': 'swift',
-    'pascal': 'pas',
-    'fortran': 'f',
-    'haskell': 'hs',
-    'verilog': 'v',
-    'plaintext': 'txt'
-  };
-  
-  return extensionMap[languageId] || 'txt';
+    cpp: 'cpp',
+    c: 'c',
+    java: 'java',
+    python: 'py',
+    javascript: 'js',
+    typescript: 'ts',
+    csharp: 'cs',
+    php: 'php',
+    ruby: 'rb',
+    go: 'go',
+    rust: 'rs',
+    scala: 'scala',
+    kotlin: 'kt',
+    swift: 'swift',
+    pascal: 'pas',
+    fortran: 'f',
+    haskell: 'hs',
+    verilog: 'v',
+    plaintext: 'txt',
+  }
+
+  return extensionMap[languageId] || 'txt'
 }
