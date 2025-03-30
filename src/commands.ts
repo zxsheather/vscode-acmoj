@@ -202,13 +202,39 @@ export function registerCommands(
         const languageItems: vscode.QuickPickItem[] = availableLanguages.map(
           (lang) => ({ label: lang })
         );
+        let defaultItem: vscode.QuickPickItem | undefined = undefined;
+        if (mappedLanguage) {
+          defaultItem = languageItems.find(item => item.label === mappedLanguage);
+        }
 
-        const selectedLanguageItem = await vscode.window.showQuickPick(
-          languageItems,
-          {
-            placeHolder: "Select the language for submission",
-          }
-        );
+        const quickPick = vscode.window.createQuickPick();
+        quickPick.items = languageItems;
+        quickPick.title = "Language Selection"; // Optional title
+        quickPick.placeholder = "Select the language for submission";
+        quickPick.canSelectMany = false; // Ensure single selection
+        quickPick.ignoreFocusOut = true; // Keep open if focus moves elsewhere
+        if (defaultItem) {
+          quickPick.activeItems = [defaultItem];
+        }
+
+        const selectedLanguageItem = await new Promise<vscode.QuickPickItem | undefined>(resolve => {
+          quickPick.onDidAccept(() => {
+            // User pressed Enter or clicked an item
+            resolve(quickPick.selectedItems[0]); // Get the selected item
+            quickPick.hide(); // Close the QuickPick
+          });
+
+          quickPick.onDidHide(() => {
+            // User pressed Esc or QuickPick was otherwise dismissed
+            // Check if an item was already selected before hiding (less common for single select)
+            if (quickPick.selectedItems.length === 0) {
+              resolve(undefined); // Resolve with undefined if nothing was chosen
+            }
+            quickPick.dispose(); // Clean up the QuickPick resources
+          });
+
+          quickPick.show(); // Display the QuickPick to the user
+        });
 
         if (!selectedLanguageItem) return; // User cancelled
 
@@ -316,29 +342,8 @@ function mapLanguageId(
   availableLangs: string[]
 ): string | undefined {
   const lowerId = vscodeLangId.toLowerCase();
-  let potentialMatch: string | undefined;
-
-  switch (lowerId) {
-    case "cpp":
-      potentialMatch = "cpp";
-      break;
-    case "python":
-      potentialMatch = "python";
-      break;
-    case "java":
-      potentialMatch = "java";
-      break;
-    case "c":
-      potentialMatch = "c";
-      break;
-    case "git":
-      potentialMatch = "plaintext"; // submit a git link as plain text
-      break;
-    case "verilog":
-      potentialMatch = "verilog";
-      break;
-  }
-
+  // only plaintext does not map to itself for all languages acmoj supports (in most cases)
+  let potentialMatch = lowerId == "plaintext" ? "git" : lowerId;
   if (potentialMatch && availableLangs.includes(potentialMatch)) {
     return potentialMatch;
   }
