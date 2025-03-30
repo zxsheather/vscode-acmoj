@@ -178,7 +178,7 @@ export async function showSubmissionDetails(
 
     // handle messages (e.g. clicking "Abort")
     panel.webview.onDidReceiveMessage(
-      (message) => {
+      async (message) => {
         switch (message.command) {
           case "abort":
             if (submission.abort_url) {
@@ -186,6 +186,20 @@ export async function showSubmissionDetails(
                 "acmoj.abortSubmission",
                 submission.id
               );
+            }
+            return;
+            
+          case "openInEditor":
+            try {
+              const code = await apiClient.getSubmissionCode(message.codeUrl);
+              await openSubmissionCodeInEditor(
+                code,
+                message.language,
+                message.problemId,
+                message.submissionId
+              );
+            } catch (error: any) {
+              vscode.window.showErrorMessage(`Failed to open code: ${error.message}`);
             }
             return;
         }
@@ -221,9 +235,12 @@ export async function showSubmissionDetails(
 function getWebviewContent(
   content: string,
   webview: vscode.Webview,
-  extensionUri: vscode.Uri
+  extensionUri: vscode.Uri,
+  providedNonce?: string
 ): string {
-  const nonce = getNonce();
+  const nonce = providedNonce || getNonce();
+  
+  // 确保CSP中的nonce和HTML中使用的nonce匹配
   const cspSource = webview.cspSource;
 
   // --- Get URIs for KaTeX assets ---
@@ -624,6 +641,9 @@ function getSubmissionHtml(
   const friendlyNameHtml = escapeHtml(submission.friendly_name);
   const codeHtml = escapeHtml(codeContent);
 
+  // Generate a nonce for the script tag
+  const scriptNonce = getNonce();
+
   const content = `
         <h1>Submission #${submission.id}</h1>
         ${abortButtonHtml}
@@ -663,27 +683,41 @@ function getSubmissionHtml(
 
         <div class="section">
             <h2>Code</h2>
+            <button id="open-in-editor-button" data-submission-id="${submission.id}" 
+            data-code-url="${submission.code_url || ''}" 
+            data-language="${submission.language}" 
+            data-problem-id="${submission.problem?.id || 0}">Open In Editor</button>
             <pre><code>${codeHtml}</code></pre>
         </div>
 
-        ${
-          abortButtonHtml
-            ? `
-        <script nonce="${getNonce()}">
+        <script nonce="${scriptNonce}">
             const vscode = acquireVsCodeApi();
-            document.getElementById('abort-button').addEventListener('click', () => {
-                vscode.postMessage({ command: 'abort', submissionId: ${
-                  submission.id
-                } });
+            
+            document.addEventListener('click', function(event) {
+                const target = event.target;
+                
+                if (target.id === 'abort-button') {
+                    vscode.postMessage({ 
+                        command: 'abort', 
+                        submissionId: ${submission.id} 
+                    });
+                }
+                
+                if (target.id === 'open-in-editor-button') {
+                    const btn = target;
+                    vscode.postMessage({ 
+                        command: 'openInEditor',
+                        submissionId: parseInt(btn.getAttribute('data-submission-id')),
+                        codeUrl: btn.getAttribute('data-code-url'),
+                        language: btn.getAttribute('data-language'),
+                        problemId: parseInt(btn.getAttribute('data-problem-id'))
+                    });
+                }
             });
         </script>
-        `
-            : ""
-        }
     `;
     
-  // Add CSS for judge details
-  const baseWebviewHtml = getWebviewContent(content, webview, extensionUri);
+  const baseWebviewHtml = getWebviewContent(content, webview, extensionUri, scriptNonce);
   return baseWebviewHtml.replace('</style>', `
     /* Judge Details Styling */
     .judge-details {
@@ -743,6 +777,13 @@ function getSubmissionHtml(
       color: var(--vscode-testing-iconFailed, #f14c4c); 
     }
     .status-partial { color: var(--vscode-charts-yellow, #e2b73d); }
+    
+    /* Button Styling */
+    #open-in-editor-button {
+      display: block;
+      margin-bottom: 1em;
+      cursor: pointer;
+    }
     </style>`);
 }
 
@@ -766,4 +807,99 @@ function getNonce(): string {
     text += possible.charAt(Math.floor(Math.random() * possible.length));
   }
   return text;
+}
+
+/**
+ * Open the submission code in the editor
+ * @param code 
+ * @param language 
+ * @param problemId 
+ * @param submissionId 
+ */
+async function openSubmissionCodeInEditor(
+  code: string,
+  language: string,
+  problemId: number,
+  submissionId: number
+): Promise<void> {
+  if (!code) {
+    throw new Error('Code content is empty or not available.');
+  }
+
+  const languageId = mapLanguageToVscode(language);
+  const fileName = `ACMOJ_P${problemId}_S${submissionId}.${getFileExtension(languageId)}`;
+  
+  const doc = await vscode.workspace.openTextDocument({
+    content: code,
+    language: languageId
+  });
+  
+  await vscode.window.showTextDocument(doc);
+  
+  vscode.window.showInformationMessage(`Have opened code for submission #${submissionId} in ${languageId} editor.`);
+}
+
+/**
+ * Map the language string to a VSCode language ID
+ */
+function mapLanguageToVscode(language: string): string {
+  const languageMap: Record<string, string> = {
+    'cpp': 'cpp',
+    'c++': 'cpp',
+    'c': 'c',
+    'java': 'java',
+    'python': 'python',
+    'python2': 'python',
+    'python3': 'python',
+    'javascript': 'javascript',
+    'js': 'javascript',
+    'typescript': 'typescript',
+    'ts': 'typescript',
+    'csharp': 'csharp',
+    'c#': 'csharp',
+    'php': 'php',
+    'ruby': 'ruby',
+    'go': 'go',
+    'rust': 'rust',
+    'scala': 'scala',
+    'kotlin': 'kotlin',
+    'swift': 'swift',
+    'pascal': 'pascal',
+    'fortran': 'fortran',
+    'haskell': 'haskell',
+    'verilog': 'verilog',
+    'plaintext': 'plaintext',
+    'git': 'plaintext'
+  };
+  
+  return languageMap[language.toLowerCase()] || 'plaintext';
+}
+
+/**
+ * Get the file extension for a given language ID
+ */
+function getFileExtension(languageId: string): string {
+  const extensionMap: Record<string, string> = {
+    'cpp': 'cpp',
+    'c': 'c',
+    'java': 'java',
+    'python': 'py',
+    'javascript': 'js',
+    'typescript': 'ts',
+    'csharp': 'cs',
+    'php': 'php',
+    'ruby': 'rb',
+    'go': 'go',
+    'rust': 'rs',
+    'scala': 'scala',
+    'kotlin': 'kt',
+    'swift': 'swift',
+    'pascal': 'pas',
+    'fortran': 'f',
+    'haskell': 'hs',
+    'verilog': 'v',
+    'plaintext': 'txt'
+  };
+  
+  return extensionMap[languageId] || 'txt';
 }
