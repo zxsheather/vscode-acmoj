@@ -99,3 +99,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 *   Added description of problemset in problemsetProvider.
+
+## [0.2.5] - 2025-3-30
+
+### Fixed
+
+*   Each problem in the tree will have a unique ID even if the same problem appears in multiple problemsets.
