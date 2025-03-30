@@ -83,3 +83,63 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 *   Added a user-friendly interface for submission details, including a collapsible section for the judge's message.
+
+## [0.2.3] - 2025-3-30
+
+### Fixed
+
+*   Missing watch:tsc and watch:esbuild scripts in package.json.
+
+### Added
+
+*   Added inference of problem id from the active editor's filename and comments.
+
+## [0.2.4] - 2025-3-30
+
+### Added
+
+*   Added description of problemset in problemsetProvider.
+
+## [0.2.5] - 2025-3-30
+
+### Fixed
+
+*   Each problem in the tree will have a unique ID even if the same problem appears in multiple problemsets.
+
+## [0.2.6] - 2025-3-30
+
+### Added
+
+*   Infer type of submission from vscode language id.
+*   List of contributors in package.json.
+
+### Changed
+
+*   Better logic for Git submissions, with inference of git remotes.
+
+## [0.2.7] - 2025-3-30
+
+### Added
+
+*   Pagination to the submission list.
+
+### Fixed
+
+*   Icons for submission status.
+*   `npm run format` command to format all files in the project.
+
+## [0.2.8] - 2025-3-30
+
+### Added
+
+*   Added a command to copy the example input to the active terminal or clipboard.
+
+## [0.2.9] - 2025-3-30
+
+### Fixed
+
+*   Increased timeout for submission status check to 15 seconds.
+
+### Added
+
+*   Added back-to-first-page button to the submission list.

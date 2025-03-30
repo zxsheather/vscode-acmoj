@@ -174,11 +174,53 @@ export class ProblemsetProvider
         ) {
           // Sort problems by ID
           problemsetDetails.problems.sort((a, b) => a.id - b.id)
-          return problemsetDetails.problems.map(
-            (p) => new ProblemBriefTreeItem(p),
+
+          const result: AcmojTreeItem[] = []
+
+          // Add description as multiple line items
+          if (problemsetDetails.description) {
+            const descriptionLines = this.splitTextIntoLines(
+              problemsetDetails.description,
+            )
+
+            result.push(
+              new ProblemsetBriefTreeItem('', element.problemset.id, true),
+            )
+
+            for (let i = 0; i < descriptionLines.length; i++) {
+              result.push(
+                new ProblemsetBriefTreeItem(
+                  '- ' + descriptionLines[i],
+                  element.problemset.id,
+                  false,
+                ),
+              )
+            }
+          } else {
+            result.push(
+              new ProblemsetBriefTreeItem(
+                'No description available',
+                element.problemset.id,
+                true,
+              ),
+            )
+          }
+
+          // Add the problems after the description
+          result.push(
+            ...problemsetDetails.problems.map(
+              (p) => new ProblemBriefTreeItem(p, element.problemset.id),
+            ),
           )
+
+          return result
         } else {
           return [
+            new ProblemsetBriefTreeItem(
+              'No description available',
+              element.problemset.id,
+              true,
+            ),
             new vscode.TreeItem(
               'No problems found in this problemset.',
               vscode.TreeItemCollapsibleState.None,
@@ -204,6 +246,26 @@ export class ProblemsetProvider
     }
 
     return []
+  }
+
+  // Helper function to split text into lines and remove markdown formatting
+  private splitTextIntoLines(text: string): string[] {
+    // Remove markdown formatting
+    const cleanText = text
+      .replace(/\*\*(.+?)\*\*/g, '$1') // bold
+      .replace(/\*(.+?)\*/g, '$1') // italic
+      .replace(/\_\_(.+?)\_\_/g, '$1') // bold
+      .replace(/\_(.+?)\_/g, '$1') // italic
+      .replace(/\[(.+?)\]\(.+?\)/g, '$1') // links
+      .replace(/\`\`\`[\s\S]*?\`\`\`/g, '') // code blocks
+      .replace(/\`(.+?)\`/g, '$1') // inline code
+      .replace(/\#{1,6}\s+(.+)/g, '$1') // headers
+      .replace(/^\s*>\s*(.*)$/gm, '$1') // blockquotes
+      .replace(/^\s*[\*\-\+]\s+/gm, '') // unordered lists
+      .replace(/^\s*\d+\.\s+/gm, '') // ordered lists
+
+    const lines = cleanText.split('\n')
+    return lines.map((line) => line.trim()).filter((line) => line.length > 0)
   }
 }
 
@@ -248,14 +310,21 @@ export class ProblemsetTreeItem extends vscode.TreeItem {
 
 // Represents a Problem Brief within a Problemset (renamed from ProblemTreeItem)
 export class ProblemBriefTreeItem extends vscode.TreeItem {
-  constructor(public readonly problem: ProblemBrief) {
+  constructor(
+    public readonly problem: ProblemBrief,
+    public readonly problemsetId?: number,
+    public readonly isFirstLine: boolean = false,
+  ) {
     super(
       `${problem.id}: ${problem.title || '(Title Unavailable)'}`,
       vscode.TreeItemCollapsibleState.None, // Problems are leaf nodes here
     )
     this.tooltip = `Problem ${problem.id}`
     this.description = problem.title ? '' : 'Not published or no permission'
-    this.id = `problem-${problem.id}`
+    // Create a unique ID by combining problemset ID with problem ID
+    this.id = problemsetId
+      ? `problemset-${problemsetId}-problem-${problem.id}`
+      : `problem-${problem.id}`
     if (problem.id) {
       this.command = {
         command: 'acmoj.viewProblem',
@@ -263,5 +332,33 @@ export class ProblemBriefTreeItem extends vscode.TreeItem {
         arguments: [problem.id], // Pass problem ID
       }
     }
+  }
+}
+
+// Represents a description of a problemset
+export class ProblemsetBriefTreeItem extends vscode.TreeItem {
+  constructor(
+    public readonly text: string,
+    public readonly problemsetId?: number,
+    public readonly isFirstLine: boolean = false,
+  ) {
+    super(
+      isFirstLine ? 'Problemset Description:' : text,
+      vscode.TreeItemCollapsibleState.None,
+    )
+
+    if (isFirstLine) {
+      this.description = text
+      this.iconPath = new vscode.ThemeIcon('info')
+    } else {
+      this.description = ''
+      // Indent non-first lines with spaces to make it visually appear as a block
+      this.label = `    ${text}`
+    }
+    // Create a unique ID for description items as well
+    this.id = problemsetId
+      ? `problemset-${problemsetId}-description-${isFirstLine ? 'header' : Math.random().toString(36).substring(2, 10)}`
+      : undefined
+    this.contextValue = 'problemsetDescription'
   }
 }
