@@ -13,6 +13,8 @@ export class SubmissionProvider
     SubmissionTreeItem | undefined | null | void
   > = this._onDidChangeTreeData.event
 
+  private currentPage: number = 1
+
   constructor(
     private apiClient: ApiClient,
     private authService: AuthService,
@@ -44,7 +46,6 @@ export class SubmissionProvider
       return []
     } else {
       try {
-        // get the first page of submissions
         const profile = await this.apiClient.getUserProfile()
         const username = profile.username
         const { submissions } = await this.apiClient.getSubmissions(
