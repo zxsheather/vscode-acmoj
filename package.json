@@ -4,6 +4,20 @@
   "description": "View problems, submit code, and check results for ACMOJ.",
   "version": "0.2.4",
   "publisher": "TheUnknownThing",
+  "contributors": [
+    {
+      "name": "TheUnknownThing",
+      "url": "https://github.com/TheUnknownThing"
+    },
+    {
+      "name": "RayZh",
+      "url": "https://github.com/RayZh-hs"
+    },
+    {
+      "name": "Xiang Zhuo",
+      "url": "https://github.com/zxsheather"
+    }
+  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/TheUnknownThing/vscode-acmoj.git"
