@@ -16,6 +16,11 @@ export class SubmissionProvider
     SubmissionViewItem | undefined | null | void
   > = this._onDidChangeTreeData.event
 
+  private currentCursor: string | undefined = undefined
+  private previousCursors: string[] = []
+  private hasNextPage: boolean = false
+  private nextPageCursor: string | undefined = undefined // New variable to store the next page cursor
+
   constructor(
     private apiClient: ApiClient,
     private authService: AuthService,
@@ -37,7 +42,13 @@ export class SubmissionProvider
 
   // Navigate to next page
   nextPage(): void {
-    if (this.hasNextPage) {
+    if (this.hasNextPage && this.nextPageCursor) {
+      // Preserve the current cursor before moving to the next page
+      if (!this.previousCursors.includes(this.currentCursor || '')) {
+        this.previousCursors.push(this.currentCursor || '')
+      }
+      // Set the next page cursor as the current cursor
+      this.currentCursor = this.nextPageCursor
       this.refresh()
     } else {
       vscode.window.showInformationMessage('No more pages available.')
@@ -77,22 +88,23 @@ export class SubmissionProvider
       return []
     } else {
       try {
+        // Get the current page of submissions
         const profile = await this.apiClient.getUserProfile()
         const username = profile.username
-        // console.log('Fetching submissions at cursor:', this.currentCursor)
+
+        // Acquire data from current cursor
         const { submissions, next } = await this.apiClient.getSubmissions(
           this.currentCursor,
           username,
         )
 
-        // Parse the next cursor from the URL
-        const nextCursor = next ? new URLSearchParams(next).get('cursor') : null
-        this.hasNextPage = Boolean(nextCursor)
-        if (nextCursor) {
-          this.previousCursors.push(this.currentCursor || '')
-        }
-        this.currentCursor = nextCursor || undefined
-        // console.log('Current cursor:', this.currentCursor)
+        // Parse the next page cursor, but do not update currentCursor here
+        this.nextPageCursor = next
+          ? new URLSearchParams(next).get('cursor') || undefined
+          : undefined
+        this.hasNextPage = Boolean(this.nextPageCursor)
+
+        // No longer update currentCursor here.
 
         const result: SubmissionViewItem[] = submissions.map(
           (s) => new SubmissionTreeItem(s),
