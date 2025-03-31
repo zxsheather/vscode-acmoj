@@ -143,3 +143,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 *   Added back-to-first-page button to the submission list.
+
+## [0.2.10] - 2025-3-31
+
+### Added
+
+*   Icon for the the button in the menu bar.
+*   Logo for the extension.
+
+## [0.2.11] - 2025-3-31
+
+### Fixed
+
+*   Fixed the issue where clicking the refresh button in the submission view would automatically jump to the next page.
