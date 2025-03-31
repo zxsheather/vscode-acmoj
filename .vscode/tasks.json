@@ -19,9 +19,9 @@
         },
         {
             "type": "npm",
-            "script": "watch",
+            "script": "watch:esbuild",
             "group": "build",
-            "problemMatcher": "$tsc-watch", 
+            "problemMatcher": "$esbuild-watch", 
             "isBackground": true,
             "label": "npm: watch:esbuild",
             "presentation": {
