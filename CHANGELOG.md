@@ -168,16 +168,3 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 *   Fixed the issue where the `previous-page` button do not exist at page 2.
-
-## [0.3.2] - 2025-4-1
-
-### Fixed
-
-*   Fixed the cache issue where the cache was not being cleared when the token was changed.
-*   Fixed the issue where the submission status was not being updated correctly after a submission (being cached).
-
-## [0.3.0] - 2025-3-31
-
-### Added
-
-*   Added cache for api requests, with a default expiration time of 15 minutes, which significantly improves user experience.
