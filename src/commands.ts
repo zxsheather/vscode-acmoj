@@ -8,6 +8,7 @@ import { exec } from 'child_process' // Node.js module to run shell commands
 import { promisify } from 'util' // To use async/await with exec
 import * as path from 'path' // Node.js module for path manipulation
 import { get } from 'axios'
+import { SubmissionMonitorService } from './submissionMonitor'
 
 const execAsync = promisify(exec) // used in getGitRemoteFetchUrls
 
@@ -17,6 +18,7 @@ export function registerCommands(
   apiClient: ApiClient,
   problemsetProvider: ProblemsetProvider,
   submissionProvider: SubmissionProvider,
+  submissionMonitor: SubmissionMonitorService,
 ) {
   context.subscriptions.push(
     vscode.commands.registerCommand('acmoj.setToken', async () => {
@@ -325,7 +327,9 @@ export function registerCommands(
                 `Successfully submitted Problem ${problemId}. Submission ID: ${result.id}`,
               )
               submissionProvider.refresh()
-              // setTimeout(() => vscode.commands.executeCommand('acmoj.viewSubmission', result.id), 3000);
+
+              // 开始监控这个新提交
+              submissionMonitor.addSubmission(result.id)
             } catch (error: any) {
               vscode.window.showErrorMessage(
                 `Submission failed: ${error.message}`,
